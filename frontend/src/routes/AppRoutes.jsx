@@ -1,9 +1,13 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+// ====================
 // Login
+// ====================
 import Login from "../pages/Login";
 
+// ====================
 // Admin
+// ====================
 import Dashboard from "../pages/admin/Dashboard";
 import Pegawai from "../pages/admin/Pegawai";
 import SlipGaji from "../pages/admin/SlipGaji";
@@ -14,40 +18,81 @@ import Notifikasi from "../pages/admin/Notifikasi";
 import Profil from "../pages/admin/Profil";
 import Pengaturan from "../pages/admin/Pengaturan";
 
+// ====================
+// User
+// ====================
+import DashboardUser from "../pages/user/Dashboard";
+
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
 
+        {/* ==================== */}
         {/* Login */}
-        <Route path="/" element={<Login />} />
+        {/* ==================== */}
+        <Route
+          path="/"
+          element={<Login />}
+        />
 
-        {/* Dashboard */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* ==================== */}
+        {/* Admin */}
+        {/* ==================== */}
 
-        {/* Pegawai */}
-        <Route path="/pegawai" element={<Pegawai />} />
+        <Route
+          path="/admin/dashboard"
+          element={<Dashboard />}
+        />
 
-        {/* Import Excel */}
-        <Route path="/import-excel" element={<UploadSlip />} />
+        <Route
+          path="/admin/pegawai"
+          element={<Pegawai />}
+        />
 
-        {/* Slip Gaji */}
-        <Route path="/slip-gaji" element={<SlipGaji />} />
+        <Route
+          path="/admin/slip-gaji"
+          element={<SlipGaji />}
+        />
 
-        {/* Detail Slip */}
-        <Route path="/detail-slip" element={<DetailSlip />} />
+        <Route
+          path="/admin/detail-slip"
+          element={<DetailSlip />}
+        />
 
-        {/* Riwayat */}
-        <Route path="/riwayat-slip" element={<RiwayatSlip />} />
+        <Route
+          path="/admin/import-excel"
+          element={<UploadSlip />}
+        />
 
-        {/* Notifikasi */}
-        <Route path="/notifikasi" element={<Notifikasi />} />
+        <Route
+          path="/admin/riwayat"
+          element={<RiwayatSlip />}
+        />
 
-        {/* Profil */}
-        <Route path="/profil" element={<Profil />} />
+        <Route
+          path="/admin/notifikasi"
+          element={<Notifikasi />}
+        />
 
-        {/* Pengaturan */}
-        <Route path="/pengaturan" element={<Pengaturan />} />
+        <Route
+          path="/admin/profil"
+          element={<Profil />}
+        />
+
+        <Route
+          path="/admin/pengaturan"
+          element={<Pengaturan />}
+        />
+
+        {/* ==================== */}
+        {/* User */}
+        {/* ==================== */}
+
+        <Route
+          path="/user/dashboard"
+          element={<DashboardUser />}
+        />
 
       </Routes>
     </BrowserRouter>

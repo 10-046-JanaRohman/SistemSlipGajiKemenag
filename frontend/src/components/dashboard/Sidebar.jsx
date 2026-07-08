@@ -3,29 +3,26 @@ import logoKemenag from "../../assets/images/logo-kemenag.png";
 
 import {
   LayoutDashboard,
+  FileText,
   Users,
   Upload,
-  FileText,
   History,
-  Bell,
-  User,
-  Settings,
   LogOut,
 } from "lucide-react";
 
 function Sidebar() {
   return (
-    <aside className="w-72 bg-green-900 text-white flex flex-col">
+    <aside className="w-64 bg-green-900 text-white flex flex-col">
 
       {/* Logo */}
-      <div className="border-b border-green-800 py-8 px-5">
+      <div className="border-b border-green-800 py-8 px-4">
 
         <div className="flex flex-col items-center">
 
           <img
             src={logoKemenag}
             alt="Logo Kemenag"
-            className="w-20 h-20 object-contain"
+            className="w-16 h-16 object-contain"
           />
 
           <h2 className="mt-4 text-center text-lg font-bold leading-tight">
@@ -44,61 +41,41 @@ function Sidebar() {
       <nav className="flex-1 p-5 space-y-2">
 
         <Menu
-          to="/dashboard"
+          to="/admin/dashboard"
           icon={<LayoutDashboard size={20} />}
           text="Dashboard"
         />
 
         <Menu
-          to="/pegawai"
-          icon={<Users size={20} />}
-          text="Pegawai"
-        />
-
-        <Menu
-          to="/import-excel"
-          icon={<Upload size={20} />}
-          text="Import Excel"
-        />
-
-        <Menu
-          to="/slip-gaji"
+          to="/admin/slip-gaji"
           icon={<FileText size={20} />}
           text="Slip Gaji"
         />
 
         <Menu
-          to="/riwayat-slip"
+          to="/admin/pegawai"
+          icon={<Users size={20} />}
+          text="Pegawai"
+        />
+
+        <Menu
+          to="/admin/import-excel"
+          icon={<Upload size={20} />}
+          text="Import Excel"
+        />
+
+        <Menu
+          to="/admin/riwayat"
           icon={<History size={20} />}
-          text="Riwayat Slip"
-        />
-
-        <Menu
-          to="/notifikasi"
-          icon={<Bell size={20} />}
-          text="Notifikasi"
-        />
-
-        <Menu
-          to="/profil"
-          icon={<User size={20} />}
-          text="Profil"
-        />
-
-        <Menu
-          to="/pengaturan"
-          icon={<Settings size={20} />}
-          text="Pengaturan"
+          text="Riwayat"
         />
 
       </nav>
 
       {/* Logout */}
-      <div className="border-t border-green-800 p-5">
+      <div className="p-5 border-t border-green-800">
 
-        <button
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-800 transition"
-        >
+        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-800 transition">
 
           <LogOut size={20} />
 
@@ -118,7 +95,7 @@ function Menu({ to, icon, text }) {
       to={to}
       end
       className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+        `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
           isActive
             ? "bg-green-700"
             : "hover:bg-green-800"
@@ -126,7 +103,9 @@ function Menu({ to, icon, text }) {
       }
     >
       {icon}
+
       <span>{text}</span>
+
     </NavLink>
   );
 }
