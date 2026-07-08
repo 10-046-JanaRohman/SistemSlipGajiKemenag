@@ -14,7 +14,7 @@ Sistem Slip Gaji Kemenag Lampung adalah aplikasi web untuk mengelola data pegawa
 
 ## Tech Stack
 
-- **Backend**: Laravel 11
+- **Backend**: Laravel 13
 - **Database**: MySQL
 - **Frontend**: Blade Templates + Tailwind CSS
 - **Excel Import**: Maatwebsite Excel
