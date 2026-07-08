@@ -8,6 +8,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * Controller untuk manajemen data pegawai
+ * 
+ * @package App\Http\Controllers\Admin
+ * @author Jana Rohman
+ * @version 1.0.0
+ * 
+ * Features:
+ * - CRUD Pegawai
+ * - Import dari Excel
+ * - Manajemen User terkait
+ */
 class PegawaiController extends Controller
 {
     public function index()
