@@ -22,11 +22,20 @@ use Illuminate\Support\Facades\Hash;
  */
 class PegawaiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $pegawais = \App\Models\Pegawai::latest()->get();
+        $search = $request->get('search');
+        
+        $query = \App\Models\Pegawai::query();
+        
+        if ($search) {
+            $query->where('nama', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+        }
+        
+        $pegawais = $query->latest()->get();
 
-        return view('admin.pegawai.index', compact('pegawais'));
+        return view('admin.pegawai.index', compact('pegawais', 'search'));
     }
 
     public function create()
