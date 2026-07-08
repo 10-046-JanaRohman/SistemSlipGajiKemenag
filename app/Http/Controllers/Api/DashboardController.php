@@ -54,20 +54,24 @@ class DashboardController extends Controller
         $totalSlipKeseluruhan = SlipGaji::count();
         $totalGajiKeseluruhan = SlipGaji::sum('gaji_bersih');
 
+        // Pegawai yang BELUM PERNAH punya slip sama sekali
+        $pegawaiIdsDenganSlip = SlipGaji::distinct('pegawai_id')
+            ->pluck('pegawai_id')
+            ->toArray();
+
+        $belumTerbit = max(0, $totalPegawai - count($pegawaiIdsDenganSlip));
+
         $importTerakhir = \App\Models\GajiImportBatch::latest()->first();
 
         $totalSlip = 0;
         $totalGaji = 0;
-        $belumTerbit = 0;
 
         if ($importTerakhir) {
             $bulan = $importTerakhir->bulan;
             $tahun = $importTerakhir->tahun;
 
-            $slips = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun);
-            $totalSlip = $slips->count();
-            $totalGaji = $slips->sum('gaji_bersih');
-            $belumTerbit = max(0, $totalPegawai - $totalSlip);
+            $totalSlip = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)->count();
+            $totalGaji = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)->sum('gaji_bersih');
         }
 
         $slipTerbaru = SlipGaji::with('pegawai')

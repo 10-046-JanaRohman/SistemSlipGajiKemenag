@@ -1,4 +1,4 @@
-<header class="bg-white shadow">
+<header class="bg-white shadow sticky top-0 z-10">
 
     <div class="flex justify-between items-center p-6">
 

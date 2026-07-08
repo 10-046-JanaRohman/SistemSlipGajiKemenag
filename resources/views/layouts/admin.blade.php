@@ -13,17 +13,17 @@
 
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 h-screen overflow-hidden">
 
-<div class="flex min-h-screen">
+<div class="flex h-full">
 
     @include('layouts.sidebar')
 
-    <div class="flex-1">
+    <div class="flex-1 flex flex-col overflow-hidden">
 
         @include('layouts.navbar')
 
-        <main class="p-8">
+        <main class="flex-1 p-8 overflow-y-auto">
 
             @yield('content')
 

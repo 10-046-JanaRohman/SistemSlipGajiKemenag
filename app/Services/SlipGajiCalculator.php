@@ -117,6 +117,11 @@ class SlipGajiCalculator
 
         $totalPotongan = array_sum($potongan);
 
+        /**
+         * Gaji Pokok (nilai asli dari excel sebelum difilter)
+         */
+        $gajiPokok = self::num($data['gjpokok'] ?? 0);
+
         /*
         |--------------------------------------------------------------------------
         | GAJI BERSIH RESMI DARI EXCEL
@@ -148,6 +153,8 @@ class SlipGajiCalculator
             'total_pendapatan' => $totalPendapatan,
 
             'total_potongan' => $totalPotongan,
+
+            'gaji_pokok' => $gajiPokok,
 
             'gaji_bersih' => $gajiBersih,
 

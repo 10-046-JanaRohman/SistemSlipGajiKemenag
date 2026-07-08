@@ -1,6 +1,6 @@
-<aside class="w-72 bg-green-900 text-white flex flex-col">
+<aside class="w-72 bg-green-900 text-white flex flex-col sticky top-0 h-screen">
 
-    <div class="p-6 border-b border-green-800">
+    <div class="p-6 border-b border-green-800 shrink-0">
         <h2 class="font-bold text-xl">
             KEMENAG
         </h2>

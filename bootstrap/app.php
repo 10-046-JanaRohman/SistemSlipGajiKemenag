@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
         ]);
 
+        // CORS untuk React frontend
+        $middleware->append([
+            \Fruitcake\Cors\HandleCors::class,
+        ]);
+
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {

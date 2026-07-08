@@ -116,7 +116,13 @@ class PegawaiController extends Controller
 
     public function destroy(Pegawai $pegawai)
     {
-        $pegawai->user()->delete();
+        \App\Models\SlipGaji::where('pegawai_id', $pegawai->id)->delete();
+
+        if ($pegawai->user) {
+            $pegawai->user->delete();
+        }
+
+        $pegawai->delete();
 
         return redirect()
             ->route('pegawai.index')

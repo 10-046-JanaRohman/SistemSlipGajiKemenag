@@ -11,51 +11,35 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Total Pegawai
-        |--------------------------------------------------------------------------
-        */
+        // ===========================================
+        // Statistik Umum
+        // ===========================================
 
+        // Total pegawai
         $totalPegawai = Pegawai::count();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Total Slip Keseluruhan
-        |--------------------------------------------------------------------------
-        */
-
+        // Total slip & gaji KESELURUHAN (akumulasi semua periode)
         $totalSlipKeseluruhan = SlipGaji::count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Total Gaji Keseluruhan
-        |--------------------------------------------------------------------------
-        */
-
         $totalGajiKeseluruhan = SlipGaji::sum('gaji_bersih');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Import Terakhir
-        |--------------------------------------------------------------------------
-        */
+        // Pegawai yang BELUM PERNAH punya slip sama sekali
+        $pegawaiIdsDenganSlip = SlipGaji::distinct('pegawai_id')
+            ->pluck('pegawai_id')
+            ->toArray();
+
+        $belumTerbit = max(0, $totalPegawai - count($pegawaiIdsDenganSlip));
+
+        // ===========================================
+        // Statistik Periode Import Terakhir
+        // ===========================================
 
         $importTerakhir = GajiImportBatch::latest()->first();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Statistik Periode Terakhir
-        |--------------------------------------------------------------------------
-        */
-
         $totalSlip = 0;
         $totalGaji = 0;
-        $belumTerbit = 0;
         $rataRataGaji = 0;
 
         if ($importTerakhir) {
-
             $bulan = $importTerakhir->bulan;
             $tahun = $importTerakhir->tahun;
 
@@ -63,33 +47,22 @@ class DashboardController extends Controller
                 ->where('tahun', $tahun);
 
             $totalSlip = $slips->count();
-
             $totalGaji = $slips->sum('gaji_bersih');
-
             $rataRataGaji = $totalSlip > 0 ? $totalGaji / $totalSlip : 0;
-
-            $belumTerbit = max(
-                0,
-                $totalPegawai - $totalSlip
-            );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Slip terbaru
-        |--------------------------------------------------------------------------
-        */
+        // ===========================================
+        // Slip terbaru (5 terakhir)
+        // ===========================================
 
         $slipTerbaru = SlipGaji::with('pegawai')
-            ->latest('tanggal_terbit')
+            ->latest('created_at')
             ->take(5)
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Import terbaru (5 terakhir)
-        |--------------------------------------------------------------------------
-        */
+        // ===========================================
+        // Import terbaru (5 terakhir)
+        // ===========================================
 
         $importTerbaru = GajiImportBatch::latest()
             ->take(5)

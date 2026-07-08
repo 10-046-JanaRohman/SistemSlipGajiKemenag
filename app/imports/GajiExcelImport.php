@@ -11,11 +11,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
-use Illuminate\Support\Facades\Hash;
 
 class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
 {
@@ -60,11 +60,7 @@ class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
             DB::beginTransaction();
 
             try {
-                /*
-                |--------------------------------------------------------------------------
-                | USER
-                |--------------------------------------------------------------------------
-                */
+                // USER
                 $user = User::firstWhere('nip', $nip);
 
                 if (! $user) {
@@ -87,14 +83,12 @@ class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
 
                 $user->save();
 
-                /*
-                |--------------------------------------------------------------------------
-                | PEGAWAI
-                |--------------------------------------------------------------------------
-                */
+                // PEGAWAI
                 $pegawai = Pegawai::firstOrNew([
                     'nip' => $nip,
                 ]);
+
+                $isNewPegawai = !$pegawai->exists;
 
                 $pegawai->user_id = $user->id;
                 $pegawai->nip = $nip;
@@ -139,41 +133,31 @@ class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
                     ?? $data['satker_4']
                     ?? $data['satker_5']
                     ?? 'KEMENAG PROV. LAMPUNG';
-                
+
                 $pegawai->npwp = $data['npwp'] ?? null;
-
                 $pegawai->rekening = $data['rekening'] ?? null;
-
-                $pegawai->nama_bank =
-                    $data['nama_bank']
-                    ?? $data['nm_bank']
-                    ?? $data['nmbankspan']
-                    ?? null;
-
-                $pegawai->no_hp =
-                    $data['no_hp']
-                    ?? $data['no hp']
-                    ?? null;
+                $pegawai->nama_bank = $data['nama_bank'] ?? $data['nm_bank'] ?? $data['nmbankspan'] ?? null;
+                $pegawai->no_hp = $data['no_hp'] ?? $data['no hp'] ?? null;
                 $pegawai->extra = $data;
 
                 $pegawai->save();
 
-                /*
-                |--------------------------------------------------------------------------
-                | HITUNG GAJI
-                |--------------------------------------------------------------------------
-                */
+                Log::info('Pegawai ' . ($isNewPegawai ? 'CREATED' : 'UPDATED'), [
+                    'nip' => $nip,
+                    'nama' => $nama,
+                    'pegawai_id' => $pegawai->id,
+                ]);
+
+                // HITUNG GAJI
                 $hasil = SlipGajiCalculator::hitung($data);
 
-                /*
-                |--------------------------------------------------------------------------
-                | SIMPAN SLIP GAJI
-                |--------------------------------------------------------------------------
-                */
+                // SIMPAN SLIP GAJI
                 $slip = SlipGaji::where('pegawai_id', $pegawai->id)
                     ->where('bulan', $this->batch->bulan)
                     ->where('tahun', $this->batch->tahun)
                     ->first();
+
+                $isNewSlip = !$slip;
 
                 if (!$slip) {
                     $slip = new SlipGaji();
@@ -192,13 +176,19 @@ class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
 
                 $slip->save();
 
+                Log::info('Slip Gaji ' . ($isNewSlip ? 'CREATED' : 'UPDATED'), [
+                    'pegawai_id' => $pegawai->id,
+                    'bulan' => $this->batch->bulan,
+                    'tahun' => $this->batch->tahun,
+                    'gaji_bersih' => $hasil['gaji_bersih'],
+                ]);
+
                 DB::commit();
                 $this->success++;
 
             } catch (\Throwable $e) {
 
                 DB::rollBack();
-
                 $this->failed++;
 
                 Log::error('Import gaji gagal', [
