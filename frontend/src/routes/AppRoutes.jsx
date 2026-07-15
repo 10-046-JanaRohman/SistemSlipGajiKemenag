@@ -17,6 +17,9 @@ import RiwayatSlip from "../pages/admin/RiwayatSlip";
 import Notifikasi from "../pages/admin/Notifikasi";
 import Profil from "../pages/admin/Profil";
 import Pengaturan from "../pages/admin/Pengaturan";
+import SlipSaya from "../pages/user/SlipSaya";
+import Riwayat from "../pages/user/Riwayat";
+import ProfilUser from "../pages/user/Profil";
 
 // ====================
 // User
@@ -94,6 +97,21 @@ function AppRoutes() {
           element={<DashboardUser />}
         />
 
+         <Route
+          path="/user/slip"
+          element={<SlipSaya />}
+        />
+
+        <Route
+          path="/user/riwayat"
+          element={<Riwayat />}
+          />
+
+        <Route
+          path="/user/profil"
+          element={<ProfilUser />}
+          />
+          
       </Routes>
     </BrowserRouter>
   );

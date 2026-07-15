@@ -3,10 +3,9 @@ import PageTransition from "../../components/common/PageTransition";
 
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardStats from "../../components/dashboard/DashboardStats";
-import DashboardChart from "../../components/dashboard/DashboardChart";
-import RecentActivity from "../../components/dashboard/RecentActivity";
 import DashboardImportTable from "../../components/dashboard/DashboardImportTable";
 import DashboardLatestSlip from "../../components/dashboard/DashboardLatestSlip";
+import RecentActivity from "../../components/dashboard/RecentActivity";
 
 function Dashboard() {
   return (
@@ -15,22 +14,26 @@ function Dashboard() {
 
         <div className="space-y-8">
 
+          {/* Header */}
           <DashboardHeader />
 
+          {/* Statistik */}
           <DashboardStats />
 
-          <div className="grid grid-cols-3 gap-6">
+          {/* Import Excel & Aktivitas */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-            <div className="col-span-2">
-              <DashboardChart />
+            <div className="xl:col-span-2">
+
+              <DashboardImportTable />
+
             </div>
 
             <RecentActivity />
 
           </div>
 
-          <DashboardImportTable />
-
+          {/* Slip Terbaru */}
           <DashboardLatestSlip />
 
         </div>
