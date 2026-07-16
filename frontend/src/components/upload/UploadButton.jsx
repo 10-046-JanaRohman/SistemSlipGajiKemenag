@@ -1,8 +1,11 @@
-function UploadButton() {
+function UploadButton({ onClick, disabled = false, loading = false, progress = 0, label = "Import Data" }) {
   return (
     <div className="flex justify-end">
 
       <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
         className="
           bg-green-700
           hover:bg-green-800
@@ -12,9 +15,11 @@ function UploadButton() {
           rounded-xl
           font-semibold
           transition
+          disabled:cursor-not-allowed
+          disabled:opacity-60
         "
       >
-        Import Data
+        {loading ? `Memproses... ${progress || 0}%` : label}
       </button>
 
     </div>

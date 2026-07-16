@@ -30,7 +30,7 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
-    if ($user?->role === 'admin') {
+    if ($user?->role === 'admin' || $user?->role === 'super_admin') {
         return redirect()->route('admin.dashboard');
     }
 

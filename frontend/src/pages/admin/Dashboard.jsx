@@ -1,14 +1,32 @@
+import { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import PageTransition from "../../components/common/PageTransition";
 
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardStats from "../../components/dashboard/DashboardStats";
-import DashboardChart from "../../components/dashboard/DashboardChart";
 import RecentActivity from "../../components/dashboard/RecentActivity";
 import DashboardImportTable from "../../components/dashboard/DashboardImportTable";
 import DashboardLatestSlip from "../../components/dashboard/DashboardLatestSlip";
+import api from "../../services/api";
 
 function Dashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await api.getDashboard();
+        setData(result?.data || result);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <AdminLayout>
       <PageTransition>
@@ -17,21 +35,13 @@ function Dashboard() {
 
           <DashboardHeader />
 
-          <DashboardStats />
+          <DashboardStats data={data} loading={loading} />
 
-          <div className="grid grid-cols-3 gap-6">
+          <RecentActivity data={data} />
 
-            <div className="col-span-2">
-              <DashboardChart />
-            </div>
+          <DashboardImportTable data={data} />
 
-            <RecentActivity />
-
-          </div>
-
-          <DashboardImportTable />
-
-          <DashboardLatestSlip />
+          <DashboardLatestSlip data={data} />
 
         </div>
 

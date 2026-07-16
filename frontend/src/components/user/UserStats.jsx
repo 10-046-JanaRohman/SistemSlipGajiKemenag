@@ -1,30 +1,50 @@
 import {
   FileText,
   History,
- CircleCheck,
+  CircleCheck,
   ChevronRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
-function UserStats() {
+function UserStats({ data, loading }) {
+  const d = data || {};
+  const totalSlip = d.total_slip ?? 0;
+  const statusSlip = d.status_slip || "Belum Ada Slip";
+  if (loading) {
+    return (
+      <div className="grid grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-2xl shadow-md p-7 animate-pulse">
+            <div className="h-8 w-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-3"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-3 gap-6">
-
       <Card
         icon={<FileText size={30} />}
         title="Slip Gaji"
-        value="12 Slip"
+        value={`${totalSlip} Slip`}
+        to="/user/slip"
       />
 
       <Card
         icon={<History size={30} />}
         title="Riwayat"
-        value="12 Data"
+        value={`${totalSlip} Data`}
+        to="/user/riwayat"
       />
 
       <Card
         icon={<CircleCheck size={30} />}
         title="Status"
-        value="Aktif"
+        value={statusSlip}
+        to="/user/slip"
       />
 
     </div>
@@ -35,8 +55,13 @@ function Card({
   icon,
   title,
   value,
+  to,
 }) {
   return (
+    <Link
+      to={to}
+      className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+    >
     <div className="
       bg-white
       rounded-2xl
@@ -83,6 +108,7 @@ function Card({
       </div>
 
     </div>
+    </Link>
   );
 }
 

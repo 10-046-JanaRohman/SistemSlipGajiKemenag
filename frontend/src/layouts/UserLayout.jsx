@@ -3,13 +3,13 @@ import UserNavbar from "../components/user/UserNavbar";
 
 function UserLayout({ children }) {
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div className="min-h-screen bg-gray-100">
 
       {/* Sidebar */}
       <UserSidebar />
 
       {/* Content */}
-      <main className="flex-1">
+      <main className="min-h-screen ml-64">
 
         {/* Navbar */}
         <UserNavbar />

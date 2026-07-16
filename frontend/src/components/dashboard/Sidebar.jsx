@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import logoKemenag from "../../assets/images/logo-kemenag.png";
 
 import {
@@ -8,11 +8,32 @@ import {
   Upload,
   History,
   LogOut,
+  Settings,
+  Megaphone,
 } from "lucide-react";
+import api from "../../services/api";
 
 function Sidebar() {
+  const navigate = useNavigate();
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })();
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // tetap logout meski gagal
+    }
+    navigate("/");
+  };
+
   return (
-    <aside className="w-64 bg-green-900 text-white flex flex-col">
+    <aside className="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col overflow-y-auto bg-green-900 text-white">
 
       {/* Logo */}
       <div className="border-b border-green-800 py-8 px-4">
@@ -70,17 +91,31 @@ function Sidebar() {
           text="Riwayat"
         />
 
+        <Menu
+          to="/admin/notifikasi"
+          icon={<Megaphone size={20} />}
+          text="Pengumuman"
+        />
+
+        {user?.role === "super_admin" && (
+          <Menu
+            to="/admin/pengaturan"
+            icon={<Settings size={20} />}
+            text="Pengaturan"
+          />
+        )}
+
       </nav>
 
       {/* Logout */}
       <div className="p-5 border-t border-green-800">
 
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-800 transition">
-
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-800 transition"
+        >
           <LogOut size={20} />
-
           <span>Logout</span>
-
         </button>
 
       </div>

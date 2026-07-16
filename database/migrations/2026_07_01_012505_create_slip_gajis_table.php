@@ -30,11 +30,7 @@ return new class extends Migration
             $table->decimal('tunjangan',15,2);
 
             $table->decimal('potongan',15,2);
-
             $table->decimal('gaji_bersih',15,2);
-
-
-            $table->timestamps();
         });
     }
 

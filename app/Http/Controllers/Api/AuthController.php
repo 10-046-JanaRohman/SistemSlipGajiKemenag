@@ -11,17 +11,29 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => ['required','email'],
+            'nip' => ['required_without:email'],
+            'email' => ['required_without:nip', 'email'],
             'password' => ['required'],
+        ], [
+            'nip.required_without' => 'NIP atau Email harus diisi.',
+            'email.required_without' => 'NIP atau Email harus diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'password.required' => 'Password harus diisi.',
         ]);
 
-        if (!Auth::attempt($request->only('email','password'))) {
+        $credentials = $request->only('password');
 
+        if ($request->filled('email')) {
+            $credentials['email'] = $request->email;
+        } else {
+            $credentials['nip'] = $request->nip;
+        }
+
+        if (!Auth::attempt($credentials)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email atau password salah.'
-            ],401);
-
+                'message' => 'NIP/Email atau password salah.'
+            ], 401);
         }
 
         $user = Auth::user();

@@ -1,57 +1,81 @@
+import { Loader2 } from "lucide-react";
 import RiwayatRow from "./RiwayatRow";
 
-const data = [
-  {
-    nip: "19871231",
-    nama: "Ahmad Fauzi",
-    periode: "Juli 2026",
-    tanggal: "08 Juli 2026",
-    status: "Sudah Dibagikan",
-  },
-  {
-    nip: "19880121",
-    nama: "Budi Santoso",
-    periode: "Juli 2026",
-    tanggal: "08 Juli 2026",
-    status: "Sudah Dibagikan",
-  },
-  {
-    nip: "19901110",
-    nama: "Rina Amelia",
-    periode: "Juli 2026",
-    tanggal: "08 Juli 2026",
-    status: "Belum Dibagikan",
-  },
-  {
-    nip: "19921212",
-    nama: "Siti Rahma",
-    periode: "Juli 2026",
-    tanggal: "08 Juli 2026",
-    status: "Sudah Dibagikan",
-  },
-];
+function RiwayatTable({ data = [], loading }) {
+  const monthNames = {
+    1: "Januari",
+    2: "Februari",
+    3: "Maret",
+    4: "April",
+    5: "Mei",
+    6: "Juni",
+    7: "Juli",
+    8: "Agustus",
+    9: "September",
+    10: "Oktober",
+    11: "November",
+    12: "Desember",
+  };
 
-function RiwayatTable() {
+  const formatPeriode = (item) => {
+    if (item.periode) return item.periode;
+    if (!item.bulan || !item.tahun) return "-";
+
+    return `${monthNames[item.bulan] || item.bulan} ${item.tahun}`;
+  };
+
+  const rows = Array.isArray(data)
+    ? data.filter((item) => item && (item.nip || item.nama || item.pegawai?.nip || item.pegawai?.nama || item.bulan || item.periode))
+    : [];
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow overflow-hidden flex items-center justify-center py-20">
+        <Loader2 size={32} className="animate-spin text-green-700" />
+        <span className="ml-3 text-gray-500">Memuat data...</span>
+      </div>
+    );
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="bg-white rounded-2xl shadow overflow-hidden flex items-center justify-center py-20">
+        <p className="text-gray-500">Belum ada riwayat slip gaji.</p>
+      </div>
+    );
+  }
+
+  const formatRow = (item) => ({
+    id: item.id,
+    nip: item.nip || item.pegawai?.nip || "-",
+    nama: item.nama || item.pegawai?.nama || "-",
+    periode: formatPeriode(item),
+    tanggal: item.tanggal_terbit || item.created_at
+      ? new Date(item.tanggal_terbit || item.created_at).toLocaleDateString("id-ID")
+      : "-",
+    status: item.status || (item.dibagikan === 1 ? "Sudah Dibagikan" : "Belum Dibagikan"),
+  });
+
   return (
-    <div className="bg-white rounded-2xl shadow overflow-hidden">
+    <div className="bg-white rounded-2xl shadow overflow-x-auto">
 
-      <table className="w-full">
+      <table className="w-full min-w-[900px] text-sm">
 
         <thead className="bg-green-700 text-white">
 
           <tr>
 
-            <th className="py-4">NIP</th>
+            <th className="px-5 py-3 text-left font-semibold">NIP</th>
 
-            <th>Nama Pegawai</th>
+            <th className="px-5 py-3 text-left font-semibold">Nama Pegawai</th>
 
-            <th>Periode</th>
+            <th className="px-5 py-3 text-left font-semibold">Periode</th>
 
-            <th>Tanggal Dibagikan</th>
+            <th className="px-5 py-3 text-left font-semibold">Tanggal Dibagikan</th>
 
-            <th>Status</th>
+            <th className="px-5 py-3 text-center font-semibold">Status</th>
 
-            <th>Aksi</th>
+            <th className="px-5 py-3 text-center font-semibold">Aksi</th>
 
           </tr>
 
@@ -59,18 +83,20 @@ function RiwayatTable() {
 
         <tbody>
 
-          {data.map((item) => (
-
-            <RiwayatRow
-              key={item.nip}
-              nip={item.nip}
-              nama={item.nama}
-              periode={item.periode}
-              tanggal={item.tanggal}
-              status={item.status}
-            />
-
-          ))}
+          {rows.map((item) => {
+            const row = formatRow(item);
+            return (
+              <RiwayatRow
+                id={row.id}
+                key={row.id || row.nip}
+                nip={row.nip}
+                nama={row.nama}
+                periode={row.periode}
+                tanggal={row.tanggal}
+                status={row.status}
+              />
+            );
+          })}
 
         </tbody>
 

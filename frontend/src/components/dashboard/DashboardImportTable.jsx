@@ -1,78 +1,87 @@
-function DashboardImportTable() {
-  const imports = [
-    {
-      file: "Gaji_Juli_2026.xlsx",
-      bulan: "Juli",
-      tahun: "2026",
-      status: "Berhasil",
-      waktu: "08 Jul 2026 09:10",
-    },
-    {
-      file: "Gaji_Juni_2026.xlsx",
-      bulan: "Juni",
-      tahun: "2026",
-      status: "Berhasil",
-      waktu: "01 Jul 2026 08:55",
-    },
-  ];
+import { formatPeriode } from "../../utils/formatPeriode";
+
+function DashboardImportTable({ data = {} }) {
+  const importTerakhir = data?.import_terakhir ?? null;
+
+  const imports = importTerakhir
+    ? [
+        {
+          file: importTerakhir.nama_file || importTerakhir.file || "-",
+          periode: importTerakhir.bulan ? formatPeriode(importTerakhir.bulan, importTerakhir.tahun) : "-",
+          status: importTerakhir.status || "Berhasil",
+          waktu: importTerakhir.created_at
+            ? new Date(importTerakhir.created_at).toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "-",
+        },
+      ]
+    : [];
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6">
+    <div className="bg-white rounded-2xl shadow-md p-6 min-w-0">
 
       <h2 className="text-2xl font-bold mb-6">
         Import Excel Terakhir
       </h2>
 
-      <table className="w-full">
+      {!imports.length ? (
+        <p className="text-gray-500 text-center py-8">Belum ada riwayat import.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
 
-        <thead className="border-b">
+            <thead className="border-b">
 
-          <tr className="text-left text-gray-500">
+              <tr className="text-left text-gray-500">
 
-            <th className="pb-3">File</th>
-            <th>Bulan</th>
-            <th>Tahun</th>
-            <th>Status</th>
-            <th>Waktu</th>
+                <th className="pb-3">File</th>
+                <th>Periode</th>
+                <th>Status</th>
+                <th>Waktu</th>
 
-          </tr>
+              </tr>
 
-        </thead>
+            </thead>
 
-        <tbody>
+            <tbody>
 
-          {imports.map((item, index) => (
+              {imports.map((item, index) => (
 
-            <tr
-              key={index}
-              className="border-b last:border-none"
-            >
+                <tr
+                  key={index}
+                  className="border-b last:border-none"
+                >
 
-              <td className="py-4 font-medium">
-                {item.file}
-              </td>
+                  <td className="py-4 font-medium max-w-[280px] truncate">
+                    {item.file}
+                  </td>
 
-              <td>{item.bulan}</td>
+                  <td>{item.periode}</td>
 
-              <td>{item.tahun}</td>
+                  <td>
 
-              <td>
+                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                      {item.status}
+                    </span>
 
-                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                  {item.status}
-                </span>
+                  </td>
 
-              </td>
+                  <td>{item.waktu}</td>
 
-              <td>{item.waktu}</td>
+                </tr>
 
-            </tr>
+              ))}
 
-          ))}
+            </tbody>
 
-        </tbody>
-
-      </table>
+          </table>
+        </div>
+      )}
 
     </div>
   );

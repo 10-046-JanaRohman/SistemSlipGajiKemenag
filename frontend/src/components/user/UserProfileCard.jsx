@@ -1,24 +1,30 @@
 import { User, Briefcase, Building2, IdCard } from "lucide-react";
 
-function UserProfileCard() {
+function UserProfileCard({ user, data }) {
+  const pegawai = data?.pegawai || data?.slip_terakhir?.pegawai || {};
+  const nama = pegawai?.nama || user?.nama || user?.name || "Pegawai";
+  const nip = pegawai?.nip || user?.nip || "-";
+  const role = ["pegawai", "user"].includes(user?.role) ? "Pegawai" : "-";
+
+  const jabatan = pegawai?.jabatan || user?.jabatan || "-";
+  const unitKerja = pegawai?.unit_kerja || pegawai?.keterangan_satuan_kerja || user?.unit_kerja || "-";
+
   return (
     <div className="bg-white rounded-2xl shadow-md p-8">
-
       {/* Avatar */}
       <div className="flex flex-col items-center">
 
         <div className="w-24 h-24 rounded-full bg-green-700 flex items-center justify-center text-white">
 
           <User size={42} />
-
         </div>
 
         <h2 className="mt-5 text-2xl font-bold text-slate-800">
-          Ahmad Fauzi
+          {nama}
         </h2>
 
         <p className="text-gray-500">
-          Pegawai
+          {role}
         </p>
 
       </div>
@@ -29,19 +35,19 @@ function UserProfileCard() {
         <Item
           icon={<IdCard size={18} />}
           label="NIP"
-          value="198712310001"
+          value={nip}
         />
 
         <Item
           icon={<Briefcase size={18} />}
           label="Jabatan"
-          value="Analis Keuangan"
+          value={jabatan}
         />
 
         <Item
           icon={<Building2 size={18} />}
           label="Unit Kerja"
-          value="Kanwil Kemenag Provinsi Lampung"
+          value={unitKerja}
         />
 
       </div>

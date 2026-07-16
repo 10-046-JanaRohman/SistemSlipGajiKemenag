@@ -62,7 +62,7 @@ class SlipSayaController extends Controller
         $pdf = Pdf::loadView('pdf.slip-gaji', [
             'slip' => $slip,
             'rincian' => $rincian,
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'landscape');
 
         return $pdf->download(
             'slip-gaji-' .

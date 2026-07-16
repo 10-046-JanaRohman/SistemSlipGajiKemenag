@@ -52,6 +52,15 @@ class GajiImportController extends Controller
 
         ProcessGajiImportJob::dispatch($batch->id, $path);
 
+        // Jika request berasal dari API (Sanctum), return JSON
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'File Excel berhasil diupload dan sedang diproses.',
+                'data' => $batch,
+            ]);
+        }
+
         return redirect()
             ->route('slip-gaji.index')
             ->with('success', 'File masuk antrean import. Proses berjalan di background.');

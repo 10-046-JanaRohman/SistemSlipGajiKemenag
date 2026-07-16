@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute";
 
 // ====================
 // Login
@@ -22,6 +23,10 @@ import Pengaturan from "../pages/admin/Pengaturan";
 // User
 // ====================
 import DashboardUser from "../pages/user/Dashboard";
+import SlipSaya from "../pages/user/SlipSaya";
+import RiwayatSlipUser from "../pages/user/RiwayatSlip";
+import ProfilUser from "../pages/user/Profil";
+import DetailSlipUser from "../pages/user/DetailSlipUser";
 
 function AppRoutes() {
   return (
@@ -31,68 +36,31 @@ function AppRoutes() {
         {/* ==================== */}
         {/* Login */}
         {/* ==================== */}
-        <Route
-          path="/"
-          element={<Login />}
-        />
+        <Route path="/" element={<Login />} />
 
         {/* ==================== */}
         {/* Admin */}
         {/* ==================== */}
 
-        <Route
-          path="/admin/dashboard"
-          element={<Dashboard />}
-        />
-
-        <Route
-          path="/admin/pegawai"
-          element={<Pegawai />}
-        />
-
-        <Route
-          path="/admin/slip-gaji"
-          element={<SlipGaji />}
-        />
-
-        <Route
-          path="/admin/detail-slip"
-          element={<DetailSlip />}
-        />
-
-        <Route
-          path="/admin/import-excel"
-          element={<UploadSlip />}
-        />
-
-        <Route
-          path="/admin/riwayat"
-          element={<RiwayatSlip />}
-        />
-
-        <Route
-          path="/admin/notifikasi"
-          element={<Notifikasi />}
-        />
-
-        <Route
-          path="/admin/profil"
-          element={<Profil />}
-        />
-
-        <Route
-          path="/admin/pengaturan"
-          element={<Pengaturan />}
-        />
+        <Route path="/admin/dashboard" element={<ProtectedRoute roles={["admin"]}><Dashboard /></ProtectedRoute>} />
+        <Route path="/admin/pegawai" element={<ProtectedRoute roles={["admin"]}><Pegawai /></ProtectedRoute>} />
+        <Route path="/admin/slip-gaji" element={<ProtectedRoute roles={["admin"]}><SlipGaji /></ProtectedRoute>} />
+        <Route path="/admin/detail-slip" element={<ProtectedRoute roles={["admin"]}><DetailSlip /></ProtectedRoute>} />
+        <Route path="/admin/import-excel" element={<ProtectedRoute roles={["admin"]}><UploadSlip /></ProtectedRoute>} />
+        <Route path="/admin/riwayat" element={<ProtectedRoute roles={["admin"]}><RiwayatSlip /></ProtectedRoute>} />
+        <Route path="/admin/notifikasi" element={<ProtectedRoute roles={["admin"]}><Notifikasi /></ProtectedRoute>} />
+        <Route path="/admin/profil" element={<ProtectedRoute roles={["admin"]}><Profil /></ProtectedRoute>} />
+        <Route path="/admin/pengaturan" element={<ProtectedRoute roles={["super_admin"]}><Pengaturan /></ProtectedRoute>} />
 
         {/* ==================== */}
         {/* User */}
         {/* ==================== */}
 
-        <Route
-          path="/user/dashboard"
-          element={<DashboardUser />}
-        />
+        <Route path="/user/dashboard" element={<ProtectedRoute roles={["pegawai", "user"]}><DashboardUser /></ProtectedRoute>} />
+        <Route path="/user/slip" element={<ProtectedRoute roles={["pegawai", "user"]}><SlipSaya /></ProtectedRoute>} />
+        <Route path="/user/slip/:id" element={<ProtectedRoute roles={["pegawai", "user"]}><DetailSlipUser /></ProtectedRoute>} />
+        <Route path="/user/riwayat" element={<ProtectedRoute roles={["pegawai", "user"]}><RiwayatSlipUser /></ProtectedRoute>} />
+        <Route path="/user/profil" element={<ProtectedRoute roles={["pegawai", "user"]}><ProfilUser /></ProtectedRoute>} />
 
       </Routes>
     </BrowserRouter>

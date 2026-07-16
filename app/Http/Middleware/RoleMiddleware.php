@@ -11,13 +11,24 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         if (!$request->user()) {
             return redirect('/login');
         }
 
-        if ($request->user()->role != $role) {
+        $userRole = $request->user()->role;
+        $allowedRoles = collect($roles)
+            ->flatMap(fn ($role) => explode('|', $role))
+            ->map(fn ($role) => trim($role))
+            ->filter()
+            ->values()
+            ->all();
+
+        $isAllowed = in_array($userRole, $allowedRoles, true)
+            || ($userRole === 'super_admin' && in_array('admin', $allowedRoles, true));
+
+        if (! $isAllowed) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

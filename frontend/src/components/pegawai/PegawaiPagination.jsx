@@ -1,22 +1,65 @@
-function PegawaiPagination() {
+function PegawaiPagination({ meta, page, onPageChange }) {
+  const { current_page = 1, last_page = 1, total = 0 } = meta || {};
+
+  if (!total) return null;
+
+  const currentPage = current_page || page;
+  const pages = Array.from(
+    new Set([
+      1,
+      currentPage - 2,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      currentPage + 2,
+      last_page,
+    ].filter((p) => p >= 1 && p <= last_page))
+  ).sort((a, b) => a - b);
+
   return (
-    <div className="flex justify-end items-center gap-4 mt-6">
+    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mt-6">
 
-      <button className="border px-5 py-2 rounded-lg hover:bg-gray-100">
-        Sebelumnya
-      </button>
+      <p className="text-gray-500 text-sm">
+        Total: {total} pegawai
+      </p>
 
-      <button className="w-10 h-10 rounded-lg bg-green-700 text-white">
-        1
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
 
-      <button className="w-10 h-10 rounded-lg border">
-        2
-      </button>
+        <button
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          className="border px-5 py-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Sebelumnya
+        </button>
 
-      <button className="border px-5 py-2 rounded-lg hover:bg-gray-100">
-        Berikutnya
-      </button>
+        {pages.map((p, index) => (
+          <span key={p} className="flex items-center gap-2">
+            {index > 0 && p - pages[index - 1] > 1 && (
+              <span className="text-gray-400">...</span>
+            )}
+            <button
+              onClick={() => onPageChange(p)}
+              className={`w-10 h-10 rounded-lg ${
+                p === page
+                  ? "bg-green-700 text-white"
+                  : "border hover:bg-gray-100"
+              }`}
+            >
+              {p}
+            </button>
+          </span>
+        ))}
+
+        <button
+          disabled={page >= last_page}
+          onClick={() => onPageChange(page + 1)}
+          className="border px-5 py-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Berikutnya
+        </button>
+
+      </div>
 
     </div>
   );

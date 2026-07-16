@@ -1,9 +1,53 @@
-import { User, Lock, Eye } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { User, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import Button from "../common/Button";
+import api from "../../services/api";
 
 function LoginRight() {
+  const navigate = useNavigate();
+
+  const [nip, setNip] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!nip.trim()) {
+      setError("Silakan masukkan NIP atau Username.");
+      return;
+    }
+    if (!password.trim()) {
+      setError("Silakan masukkan Password.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await api.login(nip.trim(), password);
+      const role = (result?.user?.role || result?.data?.user?.role || "").toLowerCase();
+
+      if (role === "admin" || role === "super_admin") {
+        navigate("/admin/dashboard");
+      } else if (role === "pegawai" || role === "user") {
+        navigate("/user/dashboard");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message || "Login gagal. Periksa NIP dan Password Anda.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="w-1/2 flex items-center justify-center bg-white">
+    <form onSubmit={handleSubmit} className="w-1/2 flex items-center justify-center bg-white">
       <div className="w-[430px]">
 
         {/* Judul */}
@@ -15,7 +59,15 @@ function LoginRight() {
           Silakan masuk untuk melanjutkan.
         </p>
 
-        {/* Username */}
+        {/* Error */}
+        {error && (
+          <div className="mb-6 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+            <AlertCircle size={18} className="shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* NIP / Username */}
         <label className="text-sm font-semibold text-gray-700">
           Username / NIP
         </label>
@@ -25,8 +77,12 @@ function LoginRight() {
 
           <input
             type="text"
+            value={nip}
+            onChange={(e) => setNip(e.target.value)}
             placeholder="Masukkan Username atau NIP"
             className="ml-3 w-full outline-none text-lg"
+            disabled={loading}
+            autoFocus
           />
         </div>
 
@@ -39,10 +95,22 @@ function LoginRight() {
           <Lock size={20} className="text-gray-400" />
 
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Masukkan Password"
             className="ml-3 w-full outline-none text-lg"
+            disabled={loading}
           />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
         </div>
 
         {/* Ingat Saya */}
@@ -71,12 +139,23 @@ function LoginRight() {
         </div>
 
         {/* Tombol */}
-        <Button className="w-full mt-8 h-16 rounded-2xl">
-          Masuk
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full mt-8 h-16 rounded-2xl flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 size={22} className="animate-spin" />
+              Memproses...
+            </>
+          ) : (
+            "Masuk"
+          )}
         </Button>
 
       </div>
-    </div>
+    </form>
   );
 }
 

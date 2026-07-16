@@ -1,50 +1,49 @@
+import { Loader2 } from "lucide-react";
 import SlipRow from "./SlipRow";
+import { formatPeriode } from "../../utils/formatPeriode";
 
-const slipData = [
-  {
-    nip: "19871231",
-    nama: "Ahmad Fauzi",
-    bulan: "Juli 2026",
-    gaji: "Rp5.500.000",
-    status: "Sudah",
-  },
-  {
-    nip: "19880121",
-    nama: "Budi Santoso",
-    bulan: "Juli 2026",
-    gaji: "Rp4.800.000",
-    status: "Belum",
-  },
-  {
-    nip: "19901110",
-    nama: "Rina Amelia",
-    bulan: "Juli 2026",
-    gaji: "Rp6.200.000",
-    status: "Sudah",
-  },
-];
+function SlipTable({ data = [], loading }) {
+  const rows = Array.isArray(data)
+    ? data.filter((item) => item && (item.nip || item.nama || item.pegawai?.nip || item.pegawai?.nama || item.bulan || item.periode))
+    : [];
 
-function SlipTable() {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden flex items-center justify-center py-20">
+        <Loader2 size={32} className="animate-spin text-green-700" />
+        <span className="ml-3 text-gray-500">Memuat data...</span>
+      </div>
+    );
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden flex items-center justify-center py-20">
+        <p className="text-gray-500">Tidak ada data slip gaji.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-md overflow-x-auto">
 
-      <table className="w-full">
+      <table className="w-full min-w-[900px] text-sm">
 
         <thead className="bg-green-700 text-white">
 
           <tr>
 
-            <th className="py-4">NIP</th>
+            <th className="px-5 py-3 text-left font-semibold">NIP</th>
 
-            <th>Nama</th>
+            <th className="px-5 py-3 text-left font-semibold">Nama</th>
 
-            <th>Bulan</th>
+            <th className="px-5 py-3 text-left font-semibold">Bulan</th>
 
-            <th>Total Gaji</th>
+            <th className="px-5 py-3 text-right font-semibold">Total Gaji</th>
 
-            <th>Status</th>
+            <th className="px-5 py-3 text-center font-semibold">Status</th>
 
-            <th>Aksi</th>
+            <th className="px-5 py-3 text-center font-semibold">Aksi</th>
 
           </tr>
 
@@ -52,17 +51,16 @@ function SlipTable() {
 
         <tbody>
 
-          {slipData.map((item) => (
-
+          {rows.map((item, index) => (
             <SlipRow
-              key={item.nip}
-              nip={item.nip}
-              nama={item.nama}
-              bulan={item.bulan}
-              gaji={item.gaji}
-              status={item.status}
+              key={item.id || `slip-${index}`}
+              id={item.id}
+              nip={item.nip || item.pegawai?.nip || "-"}
+              nama={item.nama || item.pegawai?.nama || "-"}
+              bulan={item.bulan ? formatPeriode(item.bulan, item.tahun) : item.periode || "-"}
+              gaji={item.gaji_bersih_hitung ?? item.total_gaji ?? item.gaji_bersih ?? item.total ?? item.gaji_pokok}
+              status={(item.status || (item.dibagikan === 1 ? "Dibagikan" : "Belum"))}
             />
-
           ))}
 
         </tbody>

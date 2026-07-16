@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 
-function PegawaiHeader() {
+function PegawaiHeader({ onAdd }) {
   return (
     <div className="flex justify-between items-center">
 
@@ -17,6 +17,7 @@ function PegawaiHeader() {
       </div>
 
       <button
+        onClick={onAdd}
         className="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition"
       >
 

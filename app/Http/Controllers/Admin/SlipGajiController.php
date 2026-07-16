@@ -88,7 +88,7 @@ class SlipGajiController extends Controller
                 'slip' => $slip_gaji,
                 'rincian' => $rincian,
             ]
-        )->setPaper('a4', 'portrait');
+        )->setPaper('a4', 'landscape');
 
         $namaFile =
             'slip-gaji-' .

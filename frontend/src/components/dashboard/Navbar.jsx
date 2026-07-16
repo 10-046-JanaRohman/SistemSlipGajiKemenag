@@ -1,6 +1,26 @@
+import { useState, useEffect } from "react";
 import { Bell, Search, ChevronDown } from "lucide-react";
 
 function Navbar() {
+  const [user, setUser] = useState({ name: "", role: "" });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUser({
+          name: parsed.name || parsed.nama || "User",
+          role: parsed.role || "",
+        });
+      }
+    } catch {
+      // abaikan
+    }
+  }, []);
+
+  const initial = user.name.charAt(0).toUpperCase();
+
   return (
     <header className="h-20 bg-white shadow-sm px-8 flex items-center justify-between">
 
@@ -53,19 +73,17 @@ function Navbar() {
         >
 
           <div className="w-11 h-11 rounded-full bg-green-700 flex items-center justify-center text-white font-bold">
-
-            A
-
+            {initial}
           </div>
 
           <div className="text-left">
 
             <p className="font-semibold">
-              Admin Keuangan
+              {user.name}
             </p>
 
-            <p className="text-sm text-gray-500">
-              Administrator
+            <p className="text-sm text-gray-500 capitalize">
+              {user.role}
             </p>
 
           </div>

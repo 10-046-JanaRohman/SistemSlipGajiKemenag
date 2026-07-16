@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pegawai;
 use App\Models\SlipGaji;
 use App\Models\User;
+use App\Services\SlipGajiFormatter;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -15,7 +16,7 @@ class DashboardController extends Controller
         $user = $request->user();
 
         // Jika pegawai, tampilkan dashboard pegawai
-        if ($user->role === 'pegawai') {
+        if (in_array($user->role, ['pegawai', 'user'], true)) {
             $pegawai = $user->pegawai;
 
             if (!$pegawai) {
@@ -23,6 +24,7 @@ class DashboardController extends Controller
                     'success' => true,
                     'message' => 'Dashboard berhasil diambil.',
                     'data' => [
+                        'pegawai' => null,
                         'total_slip' => 0,
                         'gaji_terakhir' => 0,
                         'slip_terakhir' => null,
@@ -41,6 +43,7 @@ class DashboardController extends Controller
                 'success' => true,
                 'message' => 'Dashboard berhasil diambil.',
                 'data' => [
+                    'pegawai' => $pegawai,
                     'total_slip' => $totalSlip,
                     'gaji_terakhir' => $gajiTerakhir,
                     'slip_terakhir' => $slipTerakhir,
@@ -52,10 +55,11 @@ class DashboardController extends Controller
         // Jika admin, tampilkan dashboard admin
         $totalPegawai = Pegawai::count();
         $totalSlipKeseluruhan = SlipGaji::count();
-        $totalGajiKeseluruhan = SlipGaji::sum('gaji_bersih');
+        $totalGajiKeseluruhan = $this->sumGajiBersih(SlipGaji::query());
 
         // Pegawai yang BELUM PERNAH punya slip sama sekali
-        $pegawaiIdsDenganSlip = SlipGaji::distinct('pegawai_id')
+        $pegawaiIdsDenganSlip = SlipGaji::select('pegawai_id')
+            ->distinct()
             ->pluck('pegawai_id')
             ->toArray();
 
@@ -71,13 +75,24 @@ class DashboardController extends Controller
             $tahun = $importTerakhir->tahun;
 
             $totalSlip = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)->count();
-            $totalGaji = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)->sum('gaji_bersih');
+            $totalGaji = $this->sumGajiBersih(
+                SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)
+            );
         }
 
         $slipTerbaru = SlipGaji::with('pegawai')
             ->latest('tanggal_terbit')
             ->take(5)
-            ->get();
+            ->get()
+            ->map(function (SlipGaji $slip) {
+                $rincian = SlipGajiFormatter::format($slip->detail_gaji ?? []);
+                $gajiBersih = $rincian['gaji_bersih'] ?? $slip->gaji_bersih;
+
+                $slip->setAttribute('gaji_bersih_hitung', $gajiBersih);
+                $slip->setAttribute('total_gaji', $gajiBersih);
+
+                return $slip;
+            });
 
         return response()->json([
             'success' => true,
@@ -93,5 +108,15 @@ class DashboardController extends Controller
                 'slip_terbaru' => $slipTerbaru,
             ],
         ]);
+    }
+
+    private function sumGajiBersih($query): float
+    {
+        return $query->get()
+            ->sum(function (SlipGaji $slip) {
+                $rincian = SlipGajiFormatter::format($slip->detail_gaji ?? []);
+
+                return $rincian['gaji_bersih'] ?? $slip->gaji_bersih ?? 0;
+            });
     }
 }
