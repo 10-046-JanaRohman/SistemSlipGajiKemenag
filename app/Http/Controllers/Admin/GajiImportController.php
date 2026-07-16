@@ -20,7 +20,8 @@ class GajiImportController extends Controller
         $request->validate([
             'bulan' => 'required|string|max:20',
             'tahun' => 'required|digits:4',
-            'file_excel' => 'required|file|mimes:xlsx,xls,csv',
+            // XLS lama dapat memiliki MIME generik; ekstensi tetap dibatasi dan file diproses oleh PhpSpreadsheet.
+            'file_excel' => 'required|file|extensions:xlsx,xls,csv|max:20480',
         ]);
 
         $file = $request->file('file_excel');

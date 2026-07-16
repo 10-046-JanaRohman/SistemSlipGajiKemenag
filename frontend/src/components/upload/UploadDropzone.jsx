@@ -18,13 +18,39 @@ const months = [
 function UploadDropzone({
   file,
   onFileSelect,
+  onValidationError,
   bulan,
   onBulanChange,
   tahun,
   onTahunChange,
 }) {
   const handleFileChange = (event) => {
-    onFileSelect(event.target.files?.[0] || null);
+    const selectedFile = event.target.files?.[0] || null;
+
+    if (!selectedFile) {
+      onFileSelect(null);
+      return;
+    }
+
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+    const supportedExtensions = ["xlsx", "xls", "csv"];
+
+    if (!supportedExtensions.includes(extension)) {
+      onFileSelect(null);
+      onValidationError?.("Format file harus .xlsx, .xls, atau .csv.");
+      event.target.value = "";
+      return;
+    }
+
+    if (selectedFile.size > 20 * 1024 * 1024) {
+      onFileSelect(null);
+      onValidationError?.("Ukuran file maksimal 20 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    onValidationError?.("");
+    onFileSelect(selectedFile);
   };
 
   return (
@@ -78,7 +104,7 @@ function UploadDropzone({
 
           <FileSpreadsheet size={22} />
 
-          Pilih File Excel
+          Pilih File Excel / CSV
 
           <input
             type="file"

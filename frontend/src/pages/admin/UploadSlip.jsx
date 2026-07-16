@@ -22,6 +22,7 @@ const normalizeNumber = (value) => {
   if (value === null || value === undefined || value === "") return null;
   const raw = String(value).trim();
   if (!raw) return null;
+  if (raw === "-" || raw === "—") return 0;
   const normalized = raw
     .replace(/rp/gi, "")
     .replace(/\s/g, "")
@@ -61,6 +62,14 @@ function UploadSlip() {
   const [previewPage, setPreviewPage] = useState(1);
   const [reviewToken, setReviewToken] = useState("");
   const [reviewChanges, setReviewChanges] = useState({});
+
+  const handleFileSelect = (selectedFile) => {
+    setFile(selectedFile);
+    setPreview(null);
+    setPreviewPage(1);
+    setReviewToken("");
+    setReviewChanges({});
+  };
 
   const validateBaseInput = () => {
     if (!file) {
@@ -258,7 +267,8 @@ function UploadSlip() {
           <UploadHeader />
           <UploadDropzone
             file={file}
-            onFileSelect={setFile}
+            onFileSelect={handleFileSelect}
+            onValidationError={setMessage}
             bulan={bulan}
             onBulanChange={setBulan}
             tahun={tahun}
@@ -328,8 +338,8 @@ function UploadSlip() {
                 <table className="min-w-max w-full text-sm">
                   <thead className="bg-green-700 text-white">
                     <tr>
-                      <th className="sticky left-0 z-20 bg-green-700 px-3 py-3 text-left">Baris</th>
-                      <th className="sticky left-[68px] z-20 bg-green-700 px-3 py-3 text-left">Status</th>
+                      <th className="px-3 py-3 text-left">Baris</th>
+                      <th className="min-w-[36rem] px-3 py-3 text-left">Status</th>
                       {previewColumns.map((column) => (
                         <th key={column} className="px-3 py-3 text-left uppercase">
                           {column}
@@ -351,9 +361,9 @@ function UploadSlip() {
 
                       return (
                       <tr key={`${row.row_number}-${rowIndex}`} className="border-b align-top">
-                        <td className="sticky left-0 z-10 bg-white px-3 py-2 font-semibold">{row.row_number}</td>
-                        <td className="sticky left-[68px] z-10 bg-white px-3 py-2">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        <td className="px-3 py-2 font-semibold">{row.row_number}</td>
+                        <td className="min-w-[36rem] px-3 py-2">
+                          <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
                             mergedRow.valid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                           }`}>
                             {mergedRow.valid ? "Valid" : mergedRow.errors.join(", ")}

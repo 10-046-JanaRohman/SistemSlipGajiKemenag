@@ -46,7 +46,9 @@ class GajiImportController extends Controller
         $validated = $request->validate([
             'bulan' => ['required', 'integer', 'between:1,12'],
             'tahun' => ['required', 'digits:4'],
-            'file_excel' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            // Validasi berdasarkan ekstensi. Sebagian file XLS lama tidak dikenali MIME-nya
+            // oleh PHP meskipun isinya valid dan bisa dibaca PhpSpreadsheet.
+            'file_excel' => ['required', 'file', 'extensions:xlsx,xls,csv', 'max:20480'],
         ]);
 
         $file = $request->file('file_excel');
@@ -82,7 +84,7 @@ class GajiImportController extends Controller
         }
 
         $request->validate([
-            'file_excel' => ['nullable', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'file_excel' => ['nullable', 'file', 'extensions:xlsx,xls,csv', 'max:20480'],
             'review_token' => ['nullable', 'string'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -114,9 +116,18 @@ class GajiImportController extends Controller
                 ], 422);
             }
 
-            $reader = IOFactory::createReaderForFile($request->file('file_excel')->getRealPath());
-            $reader->setReadDataOnly(true);
-            $worksheet = $reader->load($request->file('file_excel')->getRealPath())->getActiveSheet();
+            try {
+                $reader = IOFactory::createReaderForFile($request->file('file_excel')->getRealPath());
+                $reader->setReadDataOnly(true);
+                $worksheet = $reader->load($request->file('file_excel')->getRealPath())->getActiveSheet();
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File tidak dapat dibaca. Pastikan file .xls, .xlsx, atau .csv tidak rusak dan ekstensinya sesuai.',
+                ], 422);
+            }
 
             $headerRow = null;
 
@@ -408,6 +419,11 @@ class GajiImportController extends Controller
     {
         if ($value === null || $value === '') {
             return null;
+        }
+
+        // Template gaji lama sering memakai tanda '-' untuk nominal nol.
+        if (in_array(trim((string) $value), ['-', '—'], true)) {
+            return 0.0;
         }
 
         if (is_numeric($value)) {

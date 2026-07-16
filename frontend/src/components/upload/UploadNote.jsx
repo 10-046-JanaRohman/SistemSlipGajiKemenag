@@ -31,7 +31,7 @@ function UploadNote() {
 
       <div className="space-y-4">
 
-        <Item text="Format file harus .xlsx" />
+        <Item text="Format file yang didukung: .xlsx, .xls, dan .csv." />
 
         <Item text="Ukuran maksimum file 20 MB." />
 
