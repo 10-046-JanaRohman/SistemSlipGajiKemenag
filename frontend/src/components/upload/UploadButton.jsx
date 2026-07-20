@@ -1,4 +1,4 @@
-function UploadButton({ onClick, disabled = false, loading = false, progress = 0, label = "Import Data" }) {
+function UploadButton({ onClick, disabled = false, loading = false, label = "Import Data" }) {
   return (
     <div className="flex justify-end">
 
@@ -19,7 +19,7 @@ function UploadButton({ onClick, disabled = false, loading = false, progress = 0
           disabled:opacity-60
         "
       >
-        {loading ? `Memproses... ${progress || 0}%` : label}
+        {loading ? "Memproses..." : label}
       </button>
 
     </div>

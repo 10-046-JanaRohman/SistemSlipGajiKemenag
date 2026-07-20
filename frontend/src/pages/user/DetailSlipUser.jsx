@@ -103,14 +103,14 @@ function DetailSlipUser() {
 
           {/* Judul */}
           <div>
-            <h1 className="text-5xl font-bold text-slate-800">Detail Slip Gaji</h1>
+            <h1 className="text-3xl font-bold text-slate-800 sm:text-5xl">Detail Slip Gaji</h1>
             <p className="text-gray-500 mt-2">Informasi lengkap slip gaji Anda.</p>
           </div>
 
           {/* Card Data Pegawai */}
-          <div className="bg-white rounded-2xl shadow p-8">
+          <div className="bg-white rounded-2xl p-5 shadow sm:p-8">
             <h2 className="text-2xl font-bold mb-6">Data Pegawai</h2>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <Item label="Nama" value={pegawai.nama || data?.nama || rincianPegawai.nama || "-"} />
               <Item label="NIP" value={pegawai.nip || data?.nip || rincianPegawai.nip || "-"} />
               <Item label="Jabatan" value={pegawai.jabatan || data?.jabatan || rincianPegawai.jabatan || "-"} />
@@ -121,7 +121,7 @@ function DetailSlipUser() {
           </div>
 
           {/* Card Rincian Gaji */}
-          <div className="bg-white rounded-2xl shadow p-8">
+          <div className="bg-white rounded-2xl p-5 shadow sm:p-8">
             <h2 className="text-2xl font-bold mb-6">Rincian Gaji</h2>
             <div className="space-y-4">
               {pendapatan ? (
@@ -159,17 +159,17 @@ function DetailSlipUser() {
             </div>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <button
               onClick={handleDownload}
-              className="bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-2"
+              className="justify-center bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-2"
             >
               <Download size={20} />
               Download PDF
             </button>
             <Link
               to="/user/slip"
-              className="bg-gray-200 hover:bg-gray-300 px-8 py-3 rounded-xl font-semibold flex items-center gap-2"
+              className="justify-center bg-gray-200 hover:bg-gray-300 px-8 py-3 rounded-xl font-semibold flex items-center gap-2"
             >
               <ArrowLeft size={20} />
               Kembali

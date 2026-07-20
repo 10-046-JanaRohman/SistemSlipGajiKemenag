@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { Bell, Search } from "lucide-react";
+import GlobalSearch from "../common/GlobalSearch";
+import NotificationBell from "../common/NotificationBell";
+import ProfileMenu from "../common/ProfileMenu";
+import { Menu } from "lucide-react";
 
-function UserNavbar() {
+function UserNavbar({ onMenuClick }) {
   const [user, setUser] = useState({ name: "", role: "" });
 
   useEffect(() => {
@@ -19,72 +22,33 @@ function UserNavbar() {
     }
   }, []);
 
-  const initial = user.name.charAt(0).toUpperCase();
-
   return (
-    <header className="h-20 bg-white shadow-sm px-8 flex items-center justify-between">
+    <header className="sticky top-0 z-20 bg-white px-4 py-3 shadow-sm sm:flex sm:items-center sm:justify-between sm:px-6 lg:px-8">
 
       {/* Kiri */}
-      <div>
+      <div className="flex min-w-0 items-center gap-3"><button type="button" onClick={onMenuClick} className="rounded-lg p-2 text-slate-700 hover:bg-gray-100 lg:hidden" aria-label="Buka menu"><Menu size={24} /></button><div className="min-w-0">
 
-        <h2 className="text-2xl font-bold text-slate-800">
+        <h2 className="truncate text-lg font-bold text-slate-800 sm:text-2xl">
           Dashboard Pegawai
         </h2>
 
-        <p className="text-gray-500 text-sm">
+        <p className="hidden text-sm text-gray-500 sm:block">
           Sistem Dashboard Slip Gaji Pegawai
         </p>
 
-      </div>
+      </div></div>
 
       {/* Kanan */}
-      <div className="flex items-center gap-6">
+      <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:gap-4 lg:gap-6">
 
         {/* Search */}
-        <div className="flex items-center bg-gray-100 rounded-xl px-4 h-11 w-72">
-
-          <Search
-            size={18}
-            className="text-gray-400"
-          />
-
-          <input
-            type="text"
-            placeholder="Cari..."
-            className="bg-transparent outline-none ml-3 w-full"
-          />
-
-        </div>
+        <GlobalSearch placeholder="Cari periode slip..." />
 
         {/* Notifikasi */}
-        <button className="relative">
-
-          <Bell className="text-gray-600" />
-
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500"></span>
-
-        </button>
+        <NotificationBell />
 
         {/* Profil */}
-        <div className="flex items-center gap-3">
-
-          <div className="w-11 h-11 rounded-full bg-green-700 flex items-center justify-center text-white font-bold">
-            {initial}
-          </div>
-
-          <div>
-
-            <p className="font-semibold">
-              {user.name}
-            </p>
-
-            <p className="text-sm text-gray-500 capitalize">
-              {user.role}
-            </p>
-
-          </div>
-
-        </div>
+        <ProfileMenu user={user} profilePath="/user/profil" />
 
       </div>
 

@@ -39,21 +39,21 @@ function Dashboard() {
 
           <UserHeader user={data?.pegawai || user} />
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
             <div>
               <UserProfileCard user={user} data={data} />
             </div>
 
-            <div className="col-span-2">
+            <div className="lg:col-span-2">
               <UserStats data={data} loading={loading} />
             </div>
 
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-            <div className="col-span-2">
+            <div className="lg:col-span-2">
               <UserLatestSlip data={data} loading={loading} />
             </div>
 

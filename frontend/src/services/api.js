@@ -7,7 +7,7 @@ class ApiService {
   }
 
   getToken() {
-    return localStorage.getItem("token");
+    return localStorage.getItem("token") || sessionStorage.getItem("token");
   }
 
   getHeaders(extra = {}) {
@@ -27,6 +27,7 @@ class ApiService {
   clearAuth() {
     this.token = null;
     localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
   }
@@ -96,10 +97,11 @@ class ApiService {
 
   // ==================== AUTH ====================
 
-  async login(nip, password) {
+  async login(nip, password, remember = false) {
     const result = await this.request("POST", "/login", {
       nip,
       password,
+      remember,
     });
 
     const token = result?.token || result?.data?.token || null;
@@ -110,11 +112,26 @@ class ApiService {
     }
 
     this.token = token;
-    localStorage.setItem("token", token);
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    (remember ? localStorage : sessionStorage).setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("role", user.role);
 
     return result;
+  }
+
+  async forgotPassword(email) {
+    return this.request("POST", "/forgot-password", { email });
+  }
+
+  async resetPassword({ token, email, password, passwordConfirmation }) {
+    return this.request("POST", "/reset-password", {
+      token,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
   }
 
   async logout() {
@@ -133,6 +150,18 @@ class ApiService {
 
   async getDashboard() {
     return this.request("GET", "/dashboard");
+  }
+
+  async searchGlobal(query) {
+    return this.request("GET", `/search${this.buildQuery({ q: query })}`);
+  }
+
+  async getNotifikasi() {
+    return this.request("GET", "/notifikasi");
+  }
+
+  async markAllNotifikasiRead() {
+    return this.request("PATCH", "/notifikasi/read-all");
   }
 
   // ==================== PEGAWAI ====================
@@ -251,6 +280,10 @@ class ApiService {
     formData.append("page", page);
 
     return this.request("POST", "/import-gaji/preview", formData);
+  }
+
+  async cancelPreviewImportGaji(reviewToken) {
+    return this.request("DELETE", "/import-gaji/preview", { review_token: reviewToken });
   }
 
   async importReviewedGaji({ bulan, tahun, rows, reviewToken }) {

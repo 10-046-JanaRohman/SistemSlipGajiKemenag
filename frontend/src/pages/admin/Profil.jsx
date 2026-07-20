@@ -41,7 +41,7 @@ function Profil() {
             {loading ? (
               <p className="text-gray-500">Memuat...</p>
             ) : user ? (
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Item label="Nama" value={user.name || user.nama || "-"} />
                 <Item label="NIP" value={user.nip || "-"} />
                 <Item label="Email" value={user.email || "-"} />

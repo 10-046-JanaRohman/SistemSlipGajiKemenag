@@ -9,7 +9,7 @@ function getStoredUser() {
 }
 
 function ProtectedRoute({ children, roles = [] }) {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
   const user = getStoredUser();
   const role = (user?.role || localStorage.getItem("role") || "").toLowerCase();
   const allowedRoles = roles.map((item) => item.toLowerCase());

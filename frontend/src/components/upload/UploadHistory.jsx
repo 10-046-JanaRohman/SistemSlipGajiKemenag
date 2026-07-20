@@ -61,6 +61,7 @@ function UploadHistory() {
               <th>Periode</th>
               <th>Tanggal Import</th>
               <th>Status</th>
+              <th>Keterangan</th>
               <th>Operator</th>
             </tr>
           </thead>
@@ -71,9 +72,33 @@ function UploadHistory() {
                 <td>{item.bulan ? formatPeriode(item.bulan, item.tahun) : "-"}</td>
                 <td>{formatDate(item.created_at)}</td>
                 <td>
-                  <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm">
-                    {item.status || "Diproses"}
-                  </span>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {item.berhasil > 0 && (
+                      <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm">
+                        {item.berhasil} baris berhasil
+                      </span>
+                    )}
+                    {item.gagal > 0 && (
+                      <span className="bg-red-100 text-red-700 px-4 py-1 rounded-full text-sm">
+                        {item.gagal} baris gagal
+                      </span>
+                    )}
+                    {!item.berhasil && !item.gagal && (
+                      <span className="bg-yellow-100 text-yellow-700 px-4 py-1 rounded-full text-sm">
+                        {item.status || "Diproses"}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="max-w-xs px-3 py-3 text-left text-sm text-red-700">
+                  {item.log_gagal?.length
+                    ? item.log_gagal.slice(0, 2).map((log) => (
+                      <div key={`${log.baris}-${log.keterangan}`}>
+                        Baris {log.baris || "-"}: {log.keterangan}
+                      </div>
+                    ))
+                    : "-"}
+                  {item.log_gagal?.length > 2 && <div>dan {item.log_gagal.length - 2} lainnya.</div>}
                 </td>
                 <td>{item.uploader?.name || "-"}</td>
               </tr>

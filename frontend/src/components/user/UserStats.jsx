@@ -12,7 +12,7 @@ function UserStats({ data, loading }) {
   const statusSlip = d.status_slip || "Belum Ada Slip";
   if (loading) {
     return (
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 sm:gap-6">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-2xl shadow-md p-7 animate-pulse">
             <div className="h-8 w-8 bg-gray-200 rounded mb-4"></div>
@@ -25,7 +25,7 @@ function UserStats({ data, loading }) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 sm:gap-6">
       <Card
         icon={<FileText size={30} />}
         title="Slip Gaji"

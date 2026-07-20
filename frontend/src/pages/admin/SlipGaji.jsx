@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import AdminLayout from "../../layouts/AdminLayout";
 import PageTransition from "../../components/common/PageTransition";
 
@@ -9,10 +10,11 @@ import SlipPagination from "../../components/slip/SlipPagination";
 import api from "../../services/api";
 
 function SlipGaji() {
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [bulan, setBulan] = useState("");
   const [tahun, setTahun] = useState("");
   const [page, setPage] = useState(1);

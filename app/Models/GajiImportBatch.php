@@ -18,7 +18,15 @@ class GajiImportBatch extends Model
         'jumlah_data',
         'berhasil',
         'gagal',
+        'log_gagal',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'log_gagal' => 'array',
+        ];
+    }
 
     public function uploader()
     {

@@ -2,7 +2,7 @@ import logoKemenag from "../../assets/images/logo-kemenag.png";
 
 function LoginLeft() {
   return (
-    <div className="w-1/2 bg-gradient-to-b from-green-100 to-white flex flex-col items-center pt-16 px-12">
+    <div className="hidden w-1/2 flex-col items-center bg-gradient-to-b from-green-100 to-white px-12 pt-16 md:flex">
 
       <img
         src={logoKemenag}
