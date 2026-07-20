@@ -7,10 +7,11 @@ import {
   History,
   User,
   LogOut,
+  X,
 } from "lucide-react";
 import api from "../../services/api";
 
-function UserSidebar() {
+function UserSidebar({ mobile = false, onClose }) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -23,20 +24,22 @@ function UserSidebar() {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col overflow-y-auto bg-green-900 text-white">
+    <aside className={`fixed inset-y-0 left-0 flex h-screen w-64 flex-col overflow-y-auto bg-green-900 text-white ${mobile ? "z-50 lg:hidden" : "z-30 hidden lg:flex"}`}>
 
       {/* Logo */}
-      <div className="border-b border-green-800 py-8 px-4">
+      <div className={`border-b border-green-800 px-4 ${mobile ? "py-4" : "py-8"}`}>
+
+        {mobile && <div className="mb-3 flex items-center justify-between text-sm font-semibold text-green-100"><span>MENU PEGAWAI</span><button type="button" onClick={onClose} aria-label="Tutup menu" className="rounded-lg p-2 text-white hover:bg-green-800"><X size={20} /></button></div>}
 
         <div className="flex flex-col items-center">
 
           <img
             src={logoKemenag}
             alt="Logo Kemenag"
-            className="w-16 h-16 object-contain"
+            className={`${mobile ? "h-12 w-12" : "h-16 w-16"} object-contain`}
           />
 
-          <h2 className="mt-4 text-center text-lg font-bold leading-tight">
+          <h2 className={`${mobile ? "mt-2 text-base" : "mt-4 text-lg"} text-center font-bold leading-tight`}>
             KEMENTERIAN AGAMA
           </h2>
 
@@ -49,7 +52,7 @@ function UserSidebar() {
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 p-5 space-y-2">
+      <nav onClick={mobile ? onClose : undefined} className="flex-1 p-5 space-y-2">
 
         <Menu
           to="/user/dashboard"
@@ -81,7 +84,7 @@ function UserSidebar() {
       <div className="p-5 border-t border-green-800">
 
         <button
-          onClick={handleLogout}
+          onClick={() => { if (mobile) onClose?.(); handleLogout(); }}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-800 transition"
         >
           <LogOut size={20} />

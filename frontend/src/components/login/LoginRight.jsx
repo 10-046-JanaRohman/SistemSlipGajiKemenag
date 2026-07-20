@@ -10,6 +10,7 @@ function LoginRight() {
   const [nip, setNip] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,7 +30,7 @@ function LoginRight() {
     setLoading(true);
 
     try {
-      const result = await api.login(nip.trim(), password);
+      const result = await api.login(nip.trim(), password, remember);
       const role = (result?.user?.role || result?.data?.user?.role || "").toLowerCase();
 
       if (role === "admin" || role === "super_admin") {
@@ -47,11 +48,11 @@ function LoginRight() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-1/2 flex items-center justify-center bg-white">
-      <div className="w-[430px]">
+    <form onSubmit={handleSubmit} className="flex w-full items-center justify-center bg-white px-6 py-10 sm:px-10 md:w-1/2">
+      <div className="w-full max-w-[430px]">
 
         {/* Judul */}
-        <h2 className="text-5xl font-bold text-slate-800">
+        <h2 className="text-4xl font-bold text-slate-800 sm:text-5xl">
           Selamat Datang
         </h2>
 
@@ -114,12 +115,14 @@ function LoginRight() {
         </div>
 
         {/* Ingat Saya */}
-        <div className="flex items-center justify-between mt-6">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
 
           <label className="flex items-center gap-3 cursor-pointer">
 
             <input
               type="checkbox"
+              checked={remember}
+              onChange={(event) => setRemember(event.target.checked)}
               className="w-4 h-4 accent-green-700"
             />
 
@@ -129,12 +132,13 @@ function LoginRight() {
 
           </label>
 
-          <a
-            href="#"
+          <button
+            type="button"
+            onClick={() => navigate("/lupa-password")}
             className="text-green-700 font-medium hover:underline whitespace-nowrap"
           >
             Lupa Password?
-          </a>
+          </button>
 
         </div>
 

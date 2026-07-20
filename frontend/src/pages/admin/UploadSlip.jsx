@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import PageTransition from "../../components/common/PageTransition";
 import api from "../../services/api";
@@ -17,6 +17,9 @@ const numericReviewColumns = new Set([
   "pottabrum", "bersih", "kdkawin", "kdjab", "thngj",
   "bpjs", "bpjs2",
 ]);
+const reviewStorageKey = "gaji-import-review";
+
+const clearSavedReview = () => localStorage.removeItem(reviewStorageKey);
 
 const normalizeNumber = (value) => {
   if (value === null || value === undefined || value === "") return null;
@@ -55,13 +58,13 @@ function UploadSlip() {
   const [bulan, setBulan] = useState("");
   const [tahun, setTahun] = useState(new Date().getFullYear().toString());
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [preview, setPreview] = useState(null);
   const [previewPage, setPreviewPage] = useState(1);
   const [reviewToken, setReviewToken] = useState("");
   const [reviewChanges, setReviewChanges] = useState({});
+  const [reviewHydrated, setReviewHydrated] = useState(false);
 
   const handleFileSelect = (selectedFile) => {
     setFile(selectedFile);
@@ -69,6 +72,7 @@ function UploadSlip() {
     setPreviewPage(1);
     setReviewToken("");
     setReviewChanges({});
+    clearSavedReview();
   };
 
   const validateBaseInput = () => {
@@ -92,12 +96,12 @@ function UploadSlip() {
     if (!validateBaseInput()) return;
 
     setUploading(true);
-    setProgress(0);
     setMessage("");
     setPreview(null);
     setPreviewPage(1);
     setReviewToken("");
     setReviewChanges({});
+    clearSavedReview();
 
     try {
       const result = await api.previewImportGaji({ file, page: 1 });
@@ -159,7 +163,9 @@ function UploadSlip() {
         ...current,
         rows: rows.map((row) => {
           if (row.row_number !== rowNumber) return row;
-          const { validDelta, invalidDelta, ...cleanRow } = row;
+          const cleanRow = { ...row };
+          delete cleanRow.validDelta;
+          delete cleanRow.invalidDelta;
           return cleanRow;
         }),
         valid: nextValidCount,
@@ -215,20 +221,81 @@ function UploadSlip() {
     }
   };
 
+  useEffect(() => {
+    const restoreReview = async () => {
+      let savedReview;
+
+      try {
+        savedReview = JSON.parse(localStorage.getItem(reviewStorageKey) || "null");
+      } catch {
+        clearSavedReview();
+      }
+
+      if (!savedReview?.reviewToken) {
+        setReviewHydrated(true);
+        return;
+      }
+
+      setBulan(savedReview.bulan || "");
+      setTahun(savedReview.tahun || new Date().getFullYear().toString());
+      setReviewToken(savedReview.reviewToken);
+      setReviewChanges(savedReview.reviewChanges || {});
+      setPreviewPage(savedReview.previewPage || 1);
+      setUploading(true);
+
+      try {
+        const result = await api.previewImportGaji({
+          reviewToken: savedReview.reviewToken,
+          page: savedReview.previewPage || 1,
+        });
+        const payload = result?.data || result;
+        const rows = (payload?.rows || []).map((row) => {
+          const edited = savedReview.reviewChanges?.[row.row_number];
+          if (!edited) return row;
+
+          const data = { ...row.data, ...edited };
+          const errors = getReviewErrors(data);
+          return { ...row, data, errors, valid: errors.length === 0 };
+        });
+
+        setPreview({ ...payload, rows });
+        setMessage("Review sebelumnya dipulihkan. Anda dapat melanjutkan pemeriksaan data.");
+      } catch (err) {
+        clearSavedReview();
+        setMessage(err.message || "Review sebelumnya tidak dapat dipulihkan. Silakan upload ulang file.");
+      } finally {
+        setUploading(false);
+        setReviewHydrated(true);
+      }
+    };
+
+    restoreReview();
+  }, []);
+
+  useEffect(() => {
+    if (!reviewHydrated) return;
+
+    if (!reviewToken) {
+      clearSavedReview();
+      return;
+    }
+
+    localStorage.setItem(reviewStorageKey, JSON.stringify({
+      reviewToken,
+      bulan,
+      tahun,
+      previewPage,
+      reviewChanges,
+    }));
+  }, [bulan, previewPage, reviewChanges, reviewHydrated, reviewToken, tahun]);
+
   const handleImportReviewed = async () => {
     if (!preview?.rows?.length) {
       setMessage("Silakan review Excel terlebih dahulu.");
       return;
     }
 
-    const invalidRows = preview.rows.filter((row) => !row.valid);
-    if (invalidRows.length) {
-      setMessage(`Masih ada ${invalidRows.length} baris yang belum valid. Perbaiki dulu sebelum import.`);
-      return;
-    }
-
     setUploading(true);
-    setProgress(0);
     setMessage("");
 
     try {
@@ -248,9 +315,33 @@ function UploadSlip() {
       setPreviewPage(1);
       setReviewToken("");
       setReviewChanges({});
+      clearSavedReview();
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setMessage(err.message || "Import hasil review gagal.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCancelReview = async () => {
+    const token = reviewToken || preview?.review_token;
+    if (!token || !window.confirm("Batalkan review ini? Semua perubahan yang belum diimport akan dihapus.")) return;
+
+    setUploading(true);
+    setMessage("");
+
+    try {
+      const result = await api.cancelPreviewImportGaji(token);
+      setFile(null);
+      setPreview(null);
+      setPreviewPage(1);
+      setReviewToken("");
+      setReviewChanges({});
+      clearSavedReview();
+      setMessage(result?.message || "Review Excel dibatalkan.");
+    } catch (err) {
+      setMessage(err.message || "Gagal membatalkan review Excel.");
     } finally {
       setUploading(false);
     }
@@ -278,7 +369,7 @@ function UploadSlip() {
 
           {message && (
             <div className={`p-4 rounded-xl text-sm font-semibold ${
-              message.toLowerCase().includes("berhasil") || message.toLowerCase().includes("sukses")
+              message.toLowerCase().includes("berhasil") || message.toLowerCase().includes("sukses") || message.toLowerCase().includes("dibatalkan")
                 ? "bg-green-50 text-green-700 border border-green-200"
                 : "bg-red-50 text-red-700 border border-red-200"
             }`}>
@@ -290,13 +381,12 @@ function UploadSlip() {
             onClick={handlePreview}
             disabled={uploading || !file}
             loading={uploading}
-            progress={progress}
             label={preview ? "Review Ulang Excel" : "Review Excel"}
           />
 
           {preview && (
             <div className="space-y-4 rounded-2xl bg-white p-6 shadow-md">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">Review Data Excel</h2>
                   <p className="text-sm text-gray-500">
@@ -306,31 +396,46 @@ function UploadSlip() {
                       : ""}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+              </div>
+
+              <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <button
                     type="button"
-                    onClick={() => loadPreviewPage(previewPage - 1)}
-                    disabled={uploading || previewPage <= 1}
-                    className="rounded-xl border border-gray-200 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleCancelReview}
+                    disabled={uploading}
+                    className="w-full rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
-                    Sebelumnya
+                    Batal Review
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => loadPreviewPage(previewPage + 1)}
-                    disabled={uploading || !preview.has_more}
-                    className="rounded-xl border border-gray-200 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Berikutnya
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleImportReviewed}
-                    disabled={uploading || preview.invalid > 0 || !reviewToken}
-                    className="rounded-xl bg-green-700 px-6 py-3 font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {uploading ? "Mengimport..." : "Import Data yang Sudah Direview"}
-                  </button>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:ml-auto lg:flex-nowrap">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => loadPreviewPage(previewPage - 1)}
+                        disabled={uploading || previewPage <= 1}
+                        className="rounded-xl border border-gray-200 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Sebelumnya
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loadPreviewPage(previewPage + 1)}
+                        disabled={uploading || !preview.has_more}
+                        className="rounded-xl border border-gray-200 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Berikutnya
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleImportReviewed}
+                      disabled={uploading || !reviewToken}
+                      className="w-full rounded-xl bg-green-700 px-6 py-3 font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    >
+                      {uploading ? "Mengimport..." : "Import Data Valid"}
+                    </button>
+                  </div>
                 </div>
               </div>
 

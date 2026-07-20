@@ -294,20 +294,7 @@ class GajiImportController extends Controller
             ], JSON_UNESCAPED_UNICODE)
         );
 
-        if ($invalidRows->isNotEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Masih ada '.$invalidRows->count().' baris yang perlu diperbaiki sebelum import.',
-                'data' => [
-                    'invalid' => $invalidRows->count(),
-                    'first_invalid_rows' => $invalidRows->take(10)->values()->all(),
-                ],
-            ], 422);
-        }
-
-        $rows = $draftRows->map(fn ($row) => $row['data'] ?? [])->values()->all();
-
-        if (count($rows) === 0) {
+        if ($draftRows->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak ada data review untuk diimport.',
@@ -320,18 +307,49 @@ class GajiImportController extends Controller
             'tahun' => $validated['tahun'],
             'nama_file' => 'Review Excel Manual',
             'lokasi_file' => 'review://manual',
-            'jumlah_data' => count($rows),
+            'jumlah_data' => $draftRows->count(),
             'berhasil' => 0,
-            'gagal' => 0,
+            'gagal' => $invalidRows->count(),
+            'log_gagal' => $invalidRows->map(fn ($row) => [
+                'baris' => $row['row_number'] ?? null,
+                'keterangan' => implode(', ', $row['errors'] ?? ['Data tidak valid']),
+            ])->values()->all(),
         ]);
 
         \App\Jobs\ProcessReviewedGajiImportJob::dispatch($batch->id, $reviewToken);
 
         return response()->json([
             'success' => true,
-            'message' => 'Import review masuk antrean dan akan diproses di belakang layar.',
+            'message' => $invalidRows->isNotEmpty()
+                ? 'Import masuk antrean. '.$invalidRows->count().' baris tidak valid dilewati dan keterangannya disimpan di riwayat import.'
+                : 'Import review masuk antrean dan akan diproses di belakang layar.',
             'data' => $batch->fresh(),
         ], 202);
+    }
+
+    public function cancelReview(Request $request)
+    {
+        if (! in_array($request->user()?->role, ['admin', 'super_admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk membatalkan review import gaji.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'review_token' => ['required', 'string'],
+        ]);
+
+        $path = "import-reviews/{$validated['review_token']}.json";
+
+        if (Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review Excel dibatalkan.',
+        ]);
     }
 
     private function normalizeHeader($value): string

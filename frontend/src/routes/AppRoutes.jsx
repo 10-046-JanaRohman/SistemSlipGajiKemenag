@@ -5,6 +5,8 @@ import ProtectedRoute from "./ProtectedRoute";
 // Login
 // ====================
 import Login from "../pages/Login";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 // ====================
 // Admin
@@ -37,6 +39,8 @@ function AppRoutes() {
         {/* Login */}
         {/* ==================== */}
         <Route path="/" element={<Login />} />
+        <Route path="/lupa-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ==================== */}
         {/* Admin */}

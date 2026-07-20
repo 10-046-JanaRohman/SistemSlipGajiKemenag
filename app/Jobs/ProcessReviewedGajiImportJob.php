@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\GajiImportBatch;
+use App\Models\Notifikasi;
 use App\Services\GajiImportRowProcessor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -39,22 +40,37 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
         }
 
         $draft = json_decode(Storage::disk('local')->get($path), true) ?: [];
-        $rows = collect($draft['rows'] ?? [])
-            ->map(fn ($row) => $row['data'] ?? [])
-            ->filter(fn ($row) => is_array($row) && ! empty($row))
+        $reviewRows = collect($draft['rows'] ?? []);
+        $rows = $reviewRows
+            ->filter(fn ($row) => ($row['valid'] ?? false) && is_array($row['data'] ?? null) && ! empty($row['data']))
             ->values();
 
         $success = 0;
-        $failed = 0;
+        $failureLog = collect($batch->log_gagal ?? []);
 
         foreach ($rows as $row) {
-            $processor->process($row, $batch) ? $success++ : $failed++;
+            if ($processor->process($row['data'], $batch)) {
+                $success++;
+                continue;
+            }
+
+            $failureLog->push([
+                'baris' => $row['row_number'] ?? null,
+                'keterangan' => 'Gagal diproses oleh sistem. Periksa log aplikasi untuk rincian.',
+            ]);
         }
 
         $batch->update([
-            'jumlah_data' => $rows->count(),
+            'jumlah_data' => $reviewRows->count(),
             'berhasil' => $success,
-            'gagal' => $failed,
+            'gagal' => $failureLog->count(),
+            'log_gagal' => $failureLog->values()->all(),
+        ]);
+
+        Notifikasi::create([
+            'user_id' => $batch->uploaded_by,
+            'judul' => 'Import gaji selesai diproses',
+            'isi' => "Berhasil: {$success} baris. Gagal: ".$failureLog->count().' baris.',
         ]);
     }
 }

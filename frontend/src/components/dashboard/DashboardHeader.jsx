@@ -1,7 +1,7 @@
 function DashboardHeader() {
   return (
     <div className="mb-8">
-      <h1 className="text-5xl font-bold text-slate-800">
+      <h1 className="text-3xl font-bold text-slate-800 sm:text-5xl">
         Dashboard
       </h1>
 

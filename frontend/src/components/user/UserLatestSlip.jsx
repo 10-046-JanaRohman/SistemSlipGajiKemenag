@@ -50,7 +50,7 @@ function UserLatestSlip({ data, loading }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-8">
       {/* Judul */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
         <div>
 
@@ -75,7 +75,7 @@ function UserLatestSlip({ data, loading }) {
       </div>
 
       {/* Isi */}
-      <div className="grid grid-cols-2 gap-8 mt-8">
+      <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
         <div>
 
           <div className="flex items-center gap-3 mb-6">
