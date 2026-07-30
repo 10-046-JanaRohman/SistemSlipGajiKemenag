@@ -16,6 +16,7 @@ class GlobalSearchController extends Controller
         ]);
 
         $term = $validated['q'];
+        $normalizedTerm = mb_strtolower(trim((string) preg_replace('/\s+/', ' ', $term)));
         $user = $request->user();
 
         if (in_array($user->role, ['admin', 'super_admin'], true)) {
@@ -51,7 +52,13 @@ class GlobalSearchController extends Controller
         $pegawai = $user->pegawai;
         $slips = $pegawai
             ? SlipGaji::where('pegawai_id', $pegawai->id)->latest('tahun')->latest('bulan')->get()
-                ->filter(fn (SlipGaji $item) => str_contains("{$item->bulan}/{$item->tahun}", $term))
+                ->filter(function (SlipGaji $item) use ($normalizedTerm) {
+                    $periode = mb_strtolower(trim("{$item->bulan} {$item->tahun}"));
+                    $periodeDenganPemisah = mb_strtolower("{$item->bulan}/{$item->tahun}");
+
+                    return str_contains($periode, $normalizedTerm)
+                        || str_contains($periodeDenganPemisah, $normalizedTerm);
+                })
                 ->take(5)
             : collect();
 

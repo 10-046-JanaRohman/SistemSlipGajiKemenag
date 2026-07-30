@@ -15,7 +15,11 @@ use App\Services\SlipGajiCalculator;
 
 class GajiImportRowProcessor
 {
-    public function process(array $row, GajiImportBatch $batch): bool
+    public const CREATED = 'created';
+    public const UPDATED = 'updated';
+    public const FAILED = 'failed';
+
+    public function process(array $row, GajiImportBatch $batch): string
     {
         $data = collect($row)
             ->mapWithKeys(fn ($value, $key) => [strtolower(trim((string) $key)) => $value])
@@ -25,7 +29,15 @@ class GajiImportRowProcessor
         $nama = trim((string) ($data['nmpeg'] ?? $data['nama'] ?? ''));
 
         if ($nip === '' || $nama === '') {
-            return false;
+            return self::FAILED;
+        }
+
+        $bulan = $this->normalizeMonth($batch->bulan);
+
+        if ($bulan === null) {
+            Log::error('Import gaji gagal: bulan tidak valid', ['bulan' => $batch->bulan, 'batch_id' => $batch->id]);
+
+            return self::FAILED;
         }
 
         DB::beginTransaction();
@@ -100,7 +112,14 @@ class GajiImportRowProcessor
                 ?? 'KEMENAG PROV. LAMPUNG';
             $pegawai->npwp = $data['npwp'] ?? null;
             $pegawai->rekening = $data['rekening'] ?? null;
-            $pegawai->nama_bank = $data['nama_bank'] ?? $data['nm_bank'] ?? $data['nmbankspan'] ?? null;
+            $namaBank = collect([
+                $data['nmbankspan'] ?? null,
+                $data['nmbanksp'] ?? null,
+                $data['nama_bank'] ?? null,
+                $data['nm_bank'] ?? null,
+            ])->first(fn ($value) => filled($value));
+
+            $pegawai->nama_bank = $namaBank;
             $pegawai->no_hp = $data['no_hp'] ?? $data['no hp'] ?? null;
             $pegawai->extra = $data;
             $pegawai->save();
@@ -108,13 +127,15 @@ class GajiImportRowProcessor
             $hasil = SlipGajiCalculator::hitung($data);
 
             $slip = SlipGaji::where('pegawai_id', $pegawai->id)
-                ->where('bulan', $batch->bulan)
+                ->where('bulan', $bulan)
                 ->where('tahun', $batch->tahun)
-                ->first() ?? new SlipGaji();
+                ->first();
+            $result = $slip ? self::UPDATED : self::CREATED;
+            $slip ??= new SlipGaji();
 
             $slip->pegawai_id = $pegawai->id;
             $slip->import_batch_id = $batch->id;
-            $slip->bulan = $batch->bulan;
+            $slip->bulan = $bulan;
             $slip->tahun = $batch->tahun;
             $slip->tanggal_terbit = now()->toDateString();
             $slip->gaji_pokok = $hasil['gaji_pokok'];
@@ -126,7 +147,7 @@ class GajiImportRowProcessor
 
             DB::commit();
 
-            return true;
+            return $result;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -139,7 +160,7 @@ class GajiImportRowProcessor
                 'file' => $e->getFile(),
             ]);
 
-            return false;
+            return self::FAILED;
         }
     }
 
@@ -173,6 +194,22 @@ class GajiImportRowProcessor
             'P', 'PEREMPUAN', 'WANITA', 'F', 'FEMALE' => 'P',
             default => null,
         };
+    }
+
+    private function normalizeMonth(mixed $value): ?int
+    {
+        $month = strtolower(trim((string) $value));
+        $months = [
+            'januari' => 1, 'februari' => 2, 'maret' => 3, 'april' => 4,
+            'mei' => 5, 'juni' => 6, 'juli' => 7, 'agustus' => 8,
+            'september' => 9, 'oktober' => 10, 'november' => 11, 'desember' => 12,
+        ];
+
+        if (is_numeric($month) && (int) $month >= 1 && (int) $month <= 12) {
+            return (int) $month;
+        }
+
+        return $months[$month] ?? null;
     }
 
     private function generateUniqueEmail(string $nip): string

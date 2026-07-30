@@ -5,11 +5,12 @@ import {
   LayoutDashboard,
   FileText,
   Users,
+  UserRound,
   Upload,
-  History,
   LogOut,
   Settings,
   Megaphone,
+  Info,
   X,
 } from "lucide-react";
 import api from "../../services/api";
@@ -89,15 +90,15 @@ function Sidebar({ mobile = false, onClose }) {
         />
 
         <Menu
-          to="/admin/riwayat"
-          icon={<History size={20} />}
-          text="Riwayat"
-        />
-
-        <Menu
           to="/admin/notifikasi"
           icon={<Megaphone size={20} />}
           text="Pengumuman"
+        />
+
+        <Menu
+          to="/admin/profil"
+          icon={<UserRound size={20} />}
+          text="Profil"
         />
 
         {user?.role === "super_admin" && (
@@ -110,8 +111,19 @@ function Sidebar({ mobile = false, onClose }) {
 
       </nav>
 
-      {/* Logout */}
+      {/* Tautan informasi dan logout */}
       <div className="p-5 border-t border-green-800">
+
+        <NavLink
+          to="/admin/tentang-aplikasi"
+          onClick={mobile ? onClose : undefined}
+          className={({ isActive }) => `mb-3 flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-green-100 transition hover:bg-green-800 ${isActive ? "bg-green-800" : ""}`}
+        >
+          <Info size={17} />
+          <span>Tentang Website</span>
+        </NavLink>
+
+        <div className="border-t border-green-800 pt-3">
 
         <button
           onClick={() => { if (mobile) onClose?.(); handleLogout(); }}
@@ -120,6 +132,8 @@ function Sidebar({ mobile = false, onClose }) {
           <LogOut size={20} />
           <span>Logout</span>
         </button>
+
+        </div>
 
       </div>
 

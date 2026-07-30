@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessGajiImportJob;
 use App\Models\GajiImportBatch;
+use App\Models\SlipGaji;
 use App\Services\GajiImportRowProcessor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -31,6 +32,54 @@ class GajiImportController extends Controller
             'success' => true,
             'message' => 'Riwayat import berhasil diambil.',
             'data' => $batches,
+        ]);
+    }
+
+    /**
+     * Memberi informasi aman sebelum admin mengimpor ulang periode yang sama.
+     * Tidak mengubah data apa pun.
+     */
+    public function periodStatus(Request $request)
+    {
+        if (! in_array($request->user()?->role, ['admin', 'super_admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk memeriksa periode import.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'bulan' => ['required', 'integer', 'between:1,12'],
+            'tahun' => ['required', 'digits:4'],
+        ], [
+            'bulan.required' => 'Periode tidak valid. Silakan pilih bulan.',
+            'bulan.between' => 'Periode tidak valid. Bulan harus antara 1 sampai 12.',
+            'tahun.required' => 'Periode tidak valid. Silakan isi tahun.',
+            'tahun.digits' => 'Periode tidak valid. Tahun harus terdiri dari 4 angka.',
+        ]);
+
+        // Utamakan impor yang benar-benar menghasilkan slip. Riwayat impor gagal
+        // tidak boleh membuat admin mengira data periode sudah tersimpan.
+        $lastImport = GajiImportBatch::with('uploader:id,name')
+            ->where('bulan', $validated['bulan'])
+            ->where('tahun', $validated['tahun'])
+            ->where('berhasil', '>', 0)
+            ->latest()
+            ->first();
+
+        $slipCount = SlipGaji::query()
+            ->where('bulan', $validated['bulan'])
+            ->where('tahun', $validated['tahun'])
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status periode berhasil diperiksa.',
+            'data' => [
+                'has_existing_slips' => $slipCount > 0,
+                'slip_count' => $slipCount,
+                'last_import' => $lastImport,
+            ],
         ]);
     }
 
@@ -188,6 +237,7 @@ class GajiImportController extends Controller
             Storage::disk('local')->put(
                 "import-reviews/{$reviewToken}.json",
                 json_encode([
+                    'nama_file' => $request->file('file_excel')->getClientOriginalName(),
                     'headers' => array_values(array_filter($headers)),
                     'rows' => $this->refreshReviewRows($rows),
                 ], JSON_UNESCAPED_UNICODE)
@@ -289,6 +339,7 @@ class GajiImportController extends Controller
         Storage::disk('local')->put(
             $path,
             json_encode([
+                'nama_file' => $draft['nama_file'] ?? null,
                 'headers' => $draft['headers'] ?? [],
                 'rows' => $draftRows->values()->all(),
             ], JSON_UNESCAPED_UNICODE)
@@ -305,8 +356,8 @@ class GajiImportController extends Controller
             'uploaded_by' => $request->user()->id,
             'bulan' => $validated['bulan'],
             'tahun' => $validated['tahun'],
-            'nama_file' => 'Review Excel Manual',
-            'lokasi_file' => 'review://manual',
+            'nama_file' => $draft['nama_file'] ?? 'Review Excel Manual',
+            'lokasi_file' => "review://{$reviewToken}",
             'jumlah_data' => $draftRows->count(),
             'berhasil' => 0,
             'gagal' => $invalidRows->count(),

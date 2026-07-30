@@ -12,7 +12,7 @@
         html, body {
             margin: 0;
             padding: 0;
-            font-family: DejaVu Sans Condensed, DejaVu Sans, sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
             font-size: 8pt;
             color: #000;
         }
@@ -182,20 +182,26 @@
             font-size: 5.2px;
         }
 
+        /* Isi kolom tanda tangan menempel pada dasar baris tanpa menambah tinggi tabel. */
+        .signature-cell {
+            vertical-align: bottom !important;
+        }
+
         .watermark {
             position: fixed;
             left: 50%;
-            top: 100mm;
+            top: 105mm;
             transform: translate(-50%, -50%) rotate(-18deg);
-            font-size: 44pt;
+            font-size: 40pt;
             font-weight: bold;
+            font-style: italic;
             color: #d3d3d3;
             letter-spacing: 1.2pt;
             line-height: 1.05;
             text-align: center;
             z-index: 1;
             pointer-events: none;
-            white-space: nowrap;
+            white-space: pre-line;
         }
 
         .signature-area {
@@ -228,6 +234,14 @@
             margin-bottom: 10.5mm;
         }
 
+        .signature-image {
+            display: block;
+            width: 35mm;
+            max-height: 18mm;
+            margin: -7mm auto 1mm;
+            object-fit: contain;
+        }
+
         .signature-box .name {
             display: inline-block;
             min-width: 42mm;
@@ -241,32 +255,29 @@
         .signature-box .nip {
             display: inline-block;
             min-width: 42mm;
-            padding-bottom: 0.6mm;
-            border-bottom: 1.2pt solid #000;
             font-size: 8pt;
             font-weight: bold;
         }
 
-        .stamp-placeholder {
+        .stamp-area {
             position: absolute;
             left: 41.5%;
             top: -5mm;
             width: 35mm;
             height: 31mm;
-            border: 1px dashed #b7b7b7;
+            border: 0.8pt dashed #9b9b9b;
             border-radius: 50%;
-            color: #b7b7b7;
+            color: #777;
             text-align: center;
             font-size: 6pt;
             line-height: 1.25;
             box-sizing: border-box;
-            opacity: 0.7;
             display: flex;
             align-items: center;
             justify-content: center;
             white-space: pre-line;
             text-transform: uppercase;
-            z-index: 4;
+            z-index: 3;
         }
 
         .footer-note {
@@ -294,7 +305,7 @@
     try {
         if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) {
             $pdfSettings = \App\Models\AppSetting::query()
-                ->whereIn('key', ['pdf_bendahara_nama', 'pdf_bendahara_nip'])
+                ->whereIn('key', ['pdf_bendahara_nama', 'pdf_bendahara_nip', 'pdf_bendahara_tanda_tangan'])
                 ->pluck('value', 'key')
                 ->toArray();
         }
@@ -435,12 +446,14 @@
     ], 'KANWIL KEMENTERIAN AGAMA PROP. LAMPUNG'));
 
     $namaBank = $normalizeText($pick([
-        'nmbanksp',
         'nmbankspan',
-        'nm_bank',
         'nama_bank',
+        'nm_bank',
+        'nmbanksp',
+        'bank',
         'pegawai.nama_bank',
-    ], 'BANK RAKYAT INDONESIA'));
+        'pegawai.nmbanksp',
+    ], '-'));
 
     $nomorGaji = $normalizeText($pick([
         'nogaji',
@@ -473,12 +486,17 @@
     $bendaharaNama = $normalizeText($pick([
         'bendahara_nama',
         'pegawai.bendahara_nama',
-    ], $pdfSettings['pdf_bendahara_nama'] ?? 'Nama Bendahara'));
+    ], $pdfSettings['pdf_bendahara_nama'] ?? ''), '');
 
     $bendaharaNip = $normalizeText($pick([
         'bendahara_nip',
         'pegawai.bendahara_nip',
-    ], $pdfSettings['pdf_bendahara_nip'] ?? 'NIP Bendahara'));
+    ], $pdfSettings['pdf_bendahara_nip'] ?? ''), '');
+
+    $signaturePath = $pdfSettings['pdf_bendahara_tanda_tangan'] ?? null;
+    $signatureFile = $signaturePath && str_starts_with($signaturePath, 'signatures/bendahara/')
+        ? storage_path('app/public/'.$signaturePath)
+        : public_path('images/tanda-tangan-bendahara.png');
 
     $gpokok = $pick(['gjpokok', 'gpokok', 'gaji_pokok'], 0);
     $tjistri = $pick(['tjistri'], 0);
@@ -527,7 +545,7 @@
     $potBpjs = (float) $bpjs + (float) $bpjs2;
     $potLain = (float) $potswrum + (float) $potkelbtj + (float) $potlain + (float) $pottabrum;
 
-    $watermarkText = "HANYA UNTUK\nKEPERLUAN BPJS";
+    $watermarkText = "HANYA UNTUK\nKEPERLUAN\nBPJS";
 @endphp
 
 <div class="sheet">
@@ -544,54 +562,55 @@
     <div class="payment">PEMBAYARAN : {{ $pembayaran }}</div>
 
     <div class="table-zone">
-        <div class="watermark">{!! nl2br(e($watermarkText)) !!}</div>
+        <div class="watermark">{{ $watermarkText }}</div>
 
         <table class="slip-table">
         <colgroup>
-            <col style="width:2.34%">
-            <col style="width:11.29%">
-            <col style="width:2.88%">
-            <col style="width:7.44%">
-            <col style="width:6.25%">
-            <col style="width:6.76%">
-            <col style="width:5.40%">
-            <col style="width:4.82%">
-            <col style="width:7.12%">
-            <col style="width:4.89%">
-            <col style="width:4.96%">
-            <col style="width:6.47%">
-            <col style="width:6.25%">
-            <col style="width:6.47%">
-            <col style="width:7.77%">
-            <col style="width:8.71%">
+            <col width="2.34%" style="width:2.34%">
+            <col width="11.29%" style="width:11.29%">
+            <col width="2.88%" style="width:2.88%">
+            <col width="7.44%" style="width:7.44%">
+            <col width="6.25%" style="width:6.25%">
+            <col width="6.76%" style="width:6.76%">
+            <col width="5.40%" style="width:5.40%">
+            <col width="4.82%" style="width:4.82%">
+            <col width="7.12%" style="width:7.12%">
+            <col width="4.89%" style="width:4.89%">
+            <col width="4.96%" style="width:4.96%">
+            <col width="6.47%" style="width:6.47%">
+            <col width="6.25%" style="width:6.25%">
+            <col width="6.47%" style="width:6.47%">
+            <col width="7.77%" style="width:7.77%">
+            <col width="8.71%" style="width:8.71%">
         </colgroup>
         <thead>
             <tr class="group-row">
-                <th class="head-bridge"></th>
-                <th class="head-bridge"></th>
-                <th class="head-bridge"></th>
-                <th colspan="6" class="head-group">PENGHASILAN</th>
-                <th colspan="5" class="head-group">POTONGAN</th>
-                <th class="head-bridge"></th>
-                <th class="head-bridge"></th>
+                {{-- Dompdf memakai baris pertama untuk menghitung table-layout: fixed. --}}
+                <th width="2.34%" class="head-bridge"></th>
+                <th width="11.29%" class="head-bridge"></th>
+                <th width="2.88%" class="head-bridge"></th>
+                <th width="37.79%" colspan="6" class="head-group">PENGHASILAN</th>
+                <th width="29.04%" colspan="5" class="head-group">POTONGAN</th>
+                <th width="7.77%" class="head-bridge"></th>
+                <th width="8.71%" class="head-bridge"></th>
             </tr>
             <tr>
-                <th class="head-side">NO.<br>URT</th>
-                <th class="head-side">NAMA<br>TANGGAL LAHIR<br>NIP<br>STATUS PEGAWAI<br>GOLONGAN</th>
-                <th class="head-side">STA.<br>KAWIN<br>JML/<br>ANAK<br>JIWA</th>
-                <th class="head-sub">GAJI.<br>POKOK</th>
-                <th class="head-sub">TUN. UMUM<br>TAMB. UMUM<br>TUNJ. PAPUA<br>TW.TERCIL</th>
-                <th class="head-sub">TUNJ. JABATAN<br>STRUKTURAL<br>FUNGSIONAL<br>LAIN-LAIN<br>PEMBULATAN</th>
-                <th class="head-sub">TUNJ.<br>BERAS</th>
-                <th class="head-sub">TUNJ.<br>KHUSUS<br>PAJAK</th>
-                <th class="head-sub">JUMLAH<br>PENGH.<br>KOTOR</th>
-                <th class="head-sub">POT.<br>BERAS</th>
-                <th class="head-sub">IWP<br>BPJS<br>BPJS LAIN</th>
-                <th class="head-sub">PAJAK<br>PENGH.<br>SILAN</th>
-                <th class="head-sub">SEWA RMH<br>TUNGGAKAN<br>UTANG LEBIH<br>POT. LAIN<br>TAPERUM</th>
-                <th class="head-sub">JUMLAH<br>POTONGAN</th>
-                <th class="head-side">JUMLAH<br>BERSIH<br>YANG<br>DIBAYARKAN</th>
-                <th class="head-side">TANDA TANGAN</th>
+                <th width="2.34%" class="head-side">NO.<br>URT</th>
+                <th width="11.29%" class="head-side">NAMA<br>TANGGAL LAHIR<br>NIP<br>STATUS PEGAWAI<br>GOLONGAN</th>
+                <th width="2.88%" class="head-side">STA.<br>KAWIN<br>JML/<br>ANAK<br>JIWA</th>
+                <th width="7.44%" class="head-sub">GAJI.<br>POKOK<br>TUN. KELUARGA<br>A. ISTRI/SUAMI<br>B. ANAK</th>
+                <th width="6.25%" class="head-sub">TUN. UMUM<br>TAMB. UMUM<br>TUNJ. PAPUA<br>TW.TERCIL</th>
+                <th width="6.76%" class="head-sub">TUNJ. JABATAN<br>STRUKTURAL<br>FUNGSIONAL<br>LAIN-LAIN<br>PEMBULATAN</th>
+                <th width="5.40%" class="head-sub">TUNJ.<br>BERAS</th>
+                <th width="4.82%" class="head-sub">TUNJ.<br>KHUSUS<br>PAJAK</th>
+                <th width="7.12%" class="head-sub">JUMLAH<br>PENGH<br>KOTOR</th>
+                <th width="4.89%" class="head-sub">POT.<br>BERAS</th>
+                <th width="4.96%" class="head-sub">IWP<br>BPJS<br>BPJS LAIN</th>
+                <th width="6.47%" class="head-sub">PAJAK<br>PENGH<br>SILAN</th>
+                <th width="6.25%" class="head-sub">SEWA RMH<br>TUNGGAKAN<br>UTANG LEBIH<br>POT. LAIN<br>TAPERUM</th>
+                <th width="6.47%" class="head-sub">JUMLAH<br>POTONGAN</th>
+                <th width="7.77%" class="head-side">JUMLAH<br>BERSIH<br>YANG<br>DIBAYARKAN</th>
+                <th width="8.71%" class="head-side">TANDA TANGAN</th>
             </tr>
             <tr class="index-row">
                 <th>1</th>
@@ -737,8 +756,8 @@
                     </div>
                 </td>
 
-                <td class="left">
-                    <div class="cell-box tall stack">
+                <td class="left signature-cell">
+                    <div class="stack">
                         <div class="tiny">{{ $nomorUrut }}. ................................</div>
                         <div class="tiny">....................................</div>
                         <div class="tiny">....................................</div>
@@ -750,13 +769,22 @@
     </div>
 
     <div class="signature-area">
-        <div class="stamp-placeholder">PLACEHOLDER
-STEMPEL DIGITAL</div>
+        <div class="stamp-area">TEMPAT
+STEMPEL</div>
         <div class="signature-box">
-            <div class="lead">Mengetahui</div>
+            <div class="lead">Mengetahui :</div>
             <div class="role">Bendahara Gaji</div>
-            <div class="name">{{ $bendaharaNama }}</div>
-            <div class="nip">NIP. {{ $bendaharaNip }}</div>
+            @if(is_file($signatureFile))
+                <img
+                    src="{{ $signatureFile }}"
+                    alt="Tanda tangan Bendahara"
+                    class="signature-image"
+                >
+            @endif
+            <div class="name">{{ $bendaharaNama ?: ' ' }}</div>
+            @if($bendaharaNip)
+                <div class="nip">NIP. {{ $bendaharaNip }}</div>
+            @endif
         </div>
     </div>
 

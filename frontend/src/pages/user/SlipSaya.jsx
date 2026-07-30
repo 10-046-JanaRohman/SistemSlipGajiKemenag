@@ -33,6 +33,16 @@ function SlipSaya() {
     }
   };
 
+  const formatTanggalDibagikan = (value) => {
+    if (!value) return "-";
+
+    return new Date(value).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
     <UserLayout>
       <PageTransition>
@@ -55,11 +65,12 @@ function SlipSaya() {
               <p className="text-gray-500">Belum ada data slip gaji.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow overflow-hidden">
-              <table className="w-full">
+            <div className="bg-white rounded-2xl shadow overflow-x-auto">
+              <table className="w-full min-w-[760px]">
                 <thead className="bg-green-700 text-white">
                   <tr>
                     <th className="p-4">Periode</th>
+                    <th>Tanggal Dibagikan</th>
                     <th>Total Gaji</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -69,6 +80,7 @@ function SlipSaya() {
                   {data.map((item) => (
                     <tr key={item.id} className="border-b hover:bg-gray-50 text-center">
                       <td className="py-4">{item.bulan ? formatPeriode(item.bulan, item.tahun) : item.periode || "-"}</td>
+                      <td>{formatTanggalDibagikan(item.tanggal_dibagikan || item.tanggal_terbit)}</td>
                       <td className="font-semibold">
                         {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(item.total_gaji ?? item.total ?? 0)}
                       </td>

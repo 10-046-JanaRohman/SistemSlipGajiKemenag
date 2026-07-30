@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
 {
@@ -20,10 +21,7 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pengaturan berhasil diambil.',
-            'data' => [
-                'pdf_bendahara_nama' => AppSetting::getValue('pdf_bendahara_nama', 'Nama Bendahara'),
-                'pdf_bendahara_nip' => AppSetting::getValue('pdf_bendahara_nip', 'NIP Bendahara'),
-            ],
+            'data' => $this->settingsData(),
         ]);
     }
 
@@ -47,10 +45,50 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pengaturan bendahara berhasil disimpan.',
-            'data' => [
-                'pdf_bendahara_nama' => AppSetting::getValue('pdf_bendahara_nama', 'Nama Bendahara'),
-                'pdf_bendahara_nip' => AppSetting::getValue('pdf_bendahara_nip', 'NIP Bendahara'),
-            ],
+            'data' => $this->settingsData(),
         ]);
+    }
+
+    public function updateSignature(Request $request)
+    {
+        if ($request->user()?->role !== 'super_admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya super admin yang dapat mengubah tanda tangan bendahara.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'pdf_bendahara_tanda_tangan' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
+        ], [
+            'pdf_bendahara_tanda_tangan.required' => 'Silakan pilih gambar tanda tangan.',
+            'pdf_bendahara_tanda_tangan.image' => 'Berkas tanda tangan harus berupa gambar.',
+            'pdf_bendahara_tanda_tangan.mimes' => 'Gunakan gambar PNG, JPG, atau JPEG.',
+            'pdf_bendahara_tanda_tangan.max' => 'Ukuran gambar tanda tangan maksimal 2 MB.',
+        ]);
+
+        $oldPath = AppSetting::getValue('pdf_bendahara_tanda_tangan');
+        $path = $validated['pdf_bendahara_tanda_tangan']->store('signatures/bendahara', 'public');
+
+        AppSetting::setValue('pdf_bendahara_tanda_tangan', $path);
+
+        if ($oldPath && str_starts_with($oldPath, 'signatures/bendahara/')) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tanda tangan bendahara berhasil diunggah.',
+            'data' => $this->settingsData(),
+        ]);
+    }
+
+    private function settingsData(): array
+    {
+        return [
+            'pdf_bendahara_nama' => AppSetting::getValue('pdf_bendahara_nama', 'Nama Bendahara'),
+            'pdf_bendahara_nip' => AppSetting::getValue('pdf_bendahara_nip', 'NIP Bendahara'),
+            'pdf_bendahara_tanda_tangan_tersedia' => (bool) AppSetting::getValue('pdf_bendahara_tanda_tangan'),
+        ];
     }
 }

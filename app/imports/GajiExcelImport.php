@@ -14,6 +14,8 @@ class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
     public int $total = 0;
     public int $success = 0;
     public int $failed = 0;
+    public int $created = 0;
+    public int $updated = 0;
 
     protected GajiImportBatch $batch;
 
@@ -43,8 +45,12 @@ class GajiExcelImport implements ToCollection, WithHeadingRow, WithChunkReading
 
             $imported = app(GajiImportRowProcessor::class)->process($data, $this->batch);
 
-            if ($imported) {
+            if ($imported === GajiImportRowProcessor::CREATED) {
                 $this->success++;
+                $this->created++;
+            } elseif ($imported === GajiImportRowProcessor::UPDATED) {
+                $this->success++;
+                $this->updated++;
             } else {
                 $this->failed++;
             }

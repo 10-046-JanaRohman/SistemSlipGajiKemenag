@@ -295,6 +295,35 @@ function UploadSlip() {
       return;
     }
 
+    try {
+      const statusResult = await api.getImportPeriodStatus(bulan, tahun);
+      const periodStatus = statusResult?.data || statusResult;
+
+      if (periodStatus?.has_existing_slips) {
+        const lastImport = periodStatus.last_import;
+        const periode = new Date(Number(tahun), Number(bulan) - 1, 1).toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        });
+        const operator = lastImport?.uploader?.name
+          ? ` oleh ${lastImport.uploader.name}${lastImport.created_at ? ` pada ${new Date(lastImport.created_at).toLocaleString("id-ID")}` : ""}`
+          : "";
+        const confirmed = window.confirm(
+          `Slip gaji periode ${periode} sudah pernah diimport${operator}.\n\n` +
+          "Data pegawai yang ada pada file terbaru akan diperbarui. Slip pegawai yang tidak ada pada file terbaru tidak akan dihapus.\n\n" +
+          "Lanjutkan import dan perbarui data?"
+        );
+
+        if (!confirmed) {
+          setMessage("Import dibatalkan. Data slip gaji tidak berubah.");
+          return;
+        }
+      }
+    } catch (err) {
+      setMessage(err.message || "Periode tidak valid. Silakan periksa kembali bulan dan tahun.");
+      return;
+    }
+
     setUploading(true);
     setMessage("");
 

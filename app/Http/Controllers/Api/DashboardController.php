@@ -8,6 +8,7 @@ use App\Models\SlipGaji;
 use App\Models\User;
 use App\Services\SlipGajiFormatter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -69,16 +70,47 @@ class DashboardController extends Controller
 
         $totalSlip = 0;
         $totalGaji = 0;
+        $sudahDibagikanPeriode = 0;
+        $belumDibagikanPeriode = $totalPegawai;
 
         if ($importTerakhir) {
             $bulan = $importTerakhir->bulan;
             $tahun = $importTerakhir->tahun;
 
-            $totalSlip = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)->count();
+            $slipPeriode = SlipGaji::where('bulan', $bulan)->where('tahun', $tahun);
+
+            $totalSlip = (clone $slipPeriode)->count();
             $totalGaji = $this->sumGajiBersih(
-                SlipGaji::where('bulan', $bulan)->where('tahun', $tahun)
+                $slipPeriode
             );
+            $sudahDibagikanPeriode = (clone $slipPeriode)
+                ->whereNotNull('pegawai_id')
+                ->distinct()
+                ->count('pegawai_id');
+            $belumDibagikanPeriode = max(0, $totalPegawai - $sudahDibagikanPeriode);
         }
+
+        $ringkasanPeriode = SlipGaji::query()
+            ->select('bulan', 'tahun')
+            ->distinct()
+            ->orderByDesc('tahun')
+            ->orderByDesc(DB::raw('CAST(bulan AS UNSIGNED)'))
+            ->limit(6)
+            ->get()
+            ->map(function (SlipGaji $periode) {
+                $slips = SlipGaji::query()
+                    ->where('bulan', $periode->bulan)
+                    ->where('tahun', $periode->tahun);
+
+                return [
+                    'bulan' => (int) $periode->bulan,
+                    'tahun' => (int) $periode->tahun,
+                    'total_gaji' => $this->sumGajiBersih($slips),
+                    'slip_dibagikan' => (clone $slips)->distinct()->count('pegawai_id'),
+                    'terakhir_diperbarui' => (clone $slips)->max('updated_at'),
+                ];
+            })
+            ->values();
 
         $slipTerbaru = SlipGaji::with('pegawai')
             ->latest('tanggal_terbit')
@@ -103,8 +135,15 @@ class DashboardController extends Controller
                 'total_gaji_keseluruhan' => $totalGajiKeseluruhan,
                 'total_slip_periode' => $totalSlip,
                 'total_gaji_periode' => $totalGaji,
+                'periode_aktif' => $importTerakhir ? [
+                    'bulan' => (int) $importTerakhir->bulan,
+                    'tahun' => (int) $importTerakhir->tahun,
+                ] : null,
+                'sudah_dibagikan_periode' => $sudahDibagikanPeriode,
+                'belum_dibagikan_periode' => $belumDibagikanPeriode,
                 'belum_terbit' => $belumTerbit,
                 'import_terakhir' => $importTerakhir,
+                'ringkasan_gaji_periode' => $ringkasanPeriode,
                 'slip_terbaru' => $slipTerbaru,
             ],
         ]);

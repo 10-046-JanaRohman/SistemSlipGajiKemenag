@@ -23,20 +23,6 @@ function PegawaiToolbar({ search, onSearch }) {
 
         </div>
 
-        <select className="border rounded-xl h-14 px-5 outline-none">
-
-          <option>Semua Jabatan</option>
-
-          <option>Analis Keuangan</option>
-
-          <option>Staff Keuangan</option>
-
-          <option>Kasubbag TU</option>
-
-          <option>Bendahara</option>
-
-        </select>
-
       </div>
 
     </div>

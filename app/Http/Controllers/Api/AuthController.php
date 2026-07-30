@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRules;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
@@ -18,29 +19,20 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'nip' => ['required_without:email'],
-            'email' => ['required_without:nip', 'email'],
+            'nip' => ['required'],
             'password' => ['required'],
             'remember' => ['nullable', 'boolean'],
         ], [
-            'nip.required_without' => 'NIP atau Email harus diisi.',
-            'email.required_without' => 'NIP atau Email harus diisi.',
-            'email.email' => 'Format email tidak valid.',
+            'nip.required' => 'NIP atau username harus diisi.',
             'password.required' => 'Password harus diisi.',
         ]);
 
-        $credentials = $request->only('password');
-
-        if ($request->filled('email')) {
-            $credentials['email'] = $request->email;
-        } else {
-            $credentials['nip'] = $request->nip;
-        }
+        $credentials = $request->only('nip', 'password');
 
         if (!Auth::attempt($credentials)) {
             return response()->json([
                 'success' => false,
-                'message' => 'NIP/Email atau password salah.'
+                'message' => 'NIP/username atau password salah.'
             ], 401);
         }
 
@@ -142,6 +134,44 @@ class AuthController extends Controller
                 'user' => $user,
                 'pegawai' => $pegawai,
             ]
+        ]);
+    }
+
+    public function updateProfil(Request $request)
+    {
+        $user = $request->user();
+        $pegawai = $user->pegawai;
+
+        if (!$pegawai) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'no_hp' => ['nullable', 'string', 'max:30'],
+        ], [
+            'email.required' => 'Email harus diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah digunakan oleh akun lain.',
+            'no_hp.max' => 'Nomor HP maksimal 30 karakter.',
+        ]);
+
+        $user->email = $validated['email'];
+        $user->save();
+
+        $pegawai->no_hp = $validated['no_hp'] ?? null;
+        $pegawai->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui.',
+            'data' => [
+                'user' => $user->fresh(),
+                'pegawai' => $pegawai->fresh(),
+            ],
         ]);
     }
 

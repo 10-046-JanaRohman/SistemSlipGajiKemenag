@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, IdCard, KeyRound, LockKeyhole, Mail, Phone, UserRound } from "lucide-react";
+import { Building2, IdCard, KeyRound, LockKeyhole, Mail, Pencil, Phone, Save, UserRound, X } from "lucide-react";
 import UserLayout from "../../layouts/UserLayout";
 import PageTransition from "../../components/common/PageTransition";
 import api from "../../services/api";
@@ -16,6 +16,11 @@ function Profil() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyPasswordForm);
   const [submitting, setSubmitting] = useState(false);
+  const [profileForm, setProfileForm] = useState({ email: "", no_hp: "" });
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -26,6 +31,10 @@ function Profil() {
         const payload = result?.data || result;
         setUser(payload?.user || payload);
         setPegawai(payload?.pegawai || null);
+        setProfileForm({
+          email: payload?.user?.email || payload?.email || "",
+          no_hp: payload?.pegawai?.no_hp || "",
+        });
       } catch {
         try {
           const stored = localStorage.getItem("user");
@@ -44,6 +53,44 @@ function Profil() {
   const handlePasswordChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault();
+    setProfileMessage("");
+    setProfileError("");
+    setProfileSubmitting(true);
+
+    try {
+      const result = await api.updateProfil(profileForm);
+      const payload = result?.data || result;
+      const updatedUser = payload?.user || user;
+      const updatedPegawai = payload?.pegawai || pegawai;
+
+      setUser(updatedUser);
+      setPegawai(updatedPegawai);
+      setProfileForm({
+        email: updatedUser?.email || "",
+        no_hp: updatedPegawai?.no_hp || "",
+      });
+
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        localStorage.setItem("user", JSON.stringify({ ...JSON.parse(storedUser), ...updatedUser }));
+      }
+
+      setProfileMessage(result?.message || "Profil berhasil diperbarui.");
+      setEditingProfile(false);
+    } catch (requestError) {
+      setProfileError(requestError.message || "Profil gagal diperbarui.");
+    } finally {
+      setProfileSubmitting(false);
+    }
   };
 
   const handlePasswordSubmit = async (event) => {
@@ -85,7 +132,8 @@ function Profil() {
               <p className="text-gray-500">Memuat profil...</p>
             ) : (
               <>
-                <div className="flex items-center gap-5 border-b border-gray-100 pb-7">
+                <div className="flex items-center justify-between gap-5 border-b border-gray-100 pb-7">
+                  <div className="flex items-center gap-5">
                   <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-green-700 text-4xl font-bold text-white">
                     {initial}
                   </div>
@@ -93,16 +141,42 @@ function Profil() {
                     <h2 className="text-3xl font-bold text-slate-800">{nama}</h2>
                     <p className="mt-1 text-gray-500">Pegawai</p>
                   </div>
+                  </div>
+                  {!editingProfile && (
+                    <button type="button" onClick={() => { setProfileMessage(""); setProfileError(""); setEditingProfile(true); }} className="inline-flex items-center gap-2 rounded-xl border border-green-700 px-4 py-2.5 font-semibold text-green-700 transition hover:bg-green-50">
+                      <Pencil size={17} /> Edit Profil
+                    </button>
+                  )}
                 </div>
+
+                {profileMessage && <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">{profileMessage}</div>}
+                {profileError && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{profileError}</div>}
 
                 <div className="mt-8 grid gap-x-16 gap-y-7 md:grid-cols-2">
                   <ProfileItem icon={<IdCard size={19} />} label="NIP" value={pegawai?.nip || user?.nip || "-"} />
                   <ProfileItem icon={<UserRound size={19} />} label="Jabatan" value={pegawai?.jabatan || "-"} />
                   <ProfileItem icon={<Building2 size={19} />} label="Unit Kerja" value={pegawai?.unit_kerja || pegawai?.keterangan_satuan_kerja || "KEMENAG PROV. LAMPUNG"} />
-                  <ProfileItem icon={<Mail size={19} />} label="Email" value={user?.email || "-"} />
-                  <ProfileItem icon={<Phone size={19} />} label="No. HP" value={pegawai?.no_hp || "-"} />
+                  {editingProfile ? (
+                    <EditProfileFields form={profileForm} onChange={handleProfileChange} />
+                  ) : (
+                    <>
+                      <ProfileItem icon={<Mail size={19} />} label="Email" value={user?.email || "-"} />
+                      <ProfileItem icon={<Phone size={19} />} label="No. HP" value={pegawai?.no_hp || "-"} />
+                    </>
+                  )}
                   <ProfileItem icon={<UserRound size={19} />} label="Role" value="Pegawai" />
                 </div>
+
+                {editingProfile && (
+                  <form onSubmit={handleProfileSubmit} className="mt-7 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-6">
+                    <button type="button" onClick={() => setEditingProfile(false)} disabled={profileSubmitting} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-5 py-3 font-semibold text-slate-700 hover:bg-gray-50 disabled:opacity-60">
+                      <X size={18} /> Batal
+                    </button>
+                    <button type="submit" disabled={profileSubmitting} className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-5 py-3 font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60">
+                      <Save size={18} /> {profileSubmitting ? "Menyimpan..." : "Simpan"}
+                    </button>
+                  </form>
+                )}
               </>
             )}
           </section>
@@ -147,6 +221,21 @@ function ProfileItem({ icon, label, value }) {
         <p className="mt-1 font-semibold text-slate-800">{value}</p>
       </div>
     </div>
+  );
+}
+
+function EditProfileFields({ form, onChange }) {
+  return (
+    <>
+      <label className="block">
+        <span className="mb-2 block text-sm font-semibold text-slate-700">Email</span>
+        <input required type="email" name="email" value={form.email} onChange={onChange} className="h-11 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100" />
+      </label>
+      <label className="block">
+        <span className="mb-2 block text-sm font-semibold text-slate-700">No. HP</span>
+        <input type="tel" name="no_hp" value={form.no_hp} onChange={onChange} placeholder="Contoh: 081234567890" className="h-11 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100" />
+      </label>
+    </>
   );
 }
 

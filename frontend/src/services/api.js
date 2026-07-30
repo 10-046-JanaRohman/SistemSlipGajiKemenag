@@ -222,6 +222,10 @@ class ApiService {
     return this.request("GET", "/profil");
   }
 
+  async updateProfil(data) {
+    return this.request("PATCH", "/profil", data);
+  }
+
   async gantiPassword(data) {
     return this.request("PATCH", "/ganti-password", data);
   }
@@ -234,6 +238,12 @@ class ApiService {
 
   async updateSettings(data) {
     return this.request("PATCH", "/settings", data);
+  }
+
+  async uploadBendaharaSignature(file) {
+    const formData = new FormData();
+    formData.append("pdf_bendahara_tanda_tangan", file);
+    return this.request("POST", "/settings/signature", formData);
   }
 
   // ==================== PENGUMUMAN ====================
@@ -258,6 +268,10 @@ class ApiService {
 
   async getImportHistory(params = {}) {
     return this.request("GET", `/import-gaji${this.buildQuery(params)}`);
+  }
+
+  async getImportPeriodStatus(bulan, tahun) {
+    return this.request("GET", `/import-gaji/period-status${this.buildQuery({ bulan, tahun })}`);
   }
 
   async importGaji({ file, bulan, tahun }) {

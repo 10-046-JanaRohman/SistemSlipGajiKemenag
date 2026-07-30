@@ -19,7 +19,7 @@ function LoginRight() {
     setError("");
 
     if (!nip.trim()) {
-      setError("Silakan masukkan NIP atau Username.");
+      setError("Silakan masukkan NIP atau username.");
       return;
     }
     if (!password.trim()) {
@@ -41,7 +41,7 @@ function LoginRight() {
         navigate("/");
       }
     } catch (err) {
-      setError(err.message || "Login gagal. Periksa NIP dan Password Anda.");
+      setError(err.message || "Login gagal. Periksa NIP/username dan password Anda.");
     } finally {
       setLoading(false);
     }
@@ -68,9 +68,9 @@ function LoginRight() {
           </div>
         )}
 
-        {/* NIP / Username */}
+        {/* NIP atau username admin */}
         <label className="text-sm font-semibold text-gray-700">
-          Username / NIP
+          NIP / Username
         </label>
 
         <div className="flex items-center mt-2 mb-6 border border-gray-300 rounded-xl px-4 h-16 focus-within:border-green-600">
@@ -80,7 +80,7 @@ function LoginRight() {
             type="text"
             value={nip}
             onChange={(e) => setNip(e.target.value)}
-            placeholder="Masukkan Username atau NIP"
+            placeholder="Masukkan NIP atau username"
             className="ml-3 w-full outline-none text-lg"
             disabled={loading}
             autoFocus

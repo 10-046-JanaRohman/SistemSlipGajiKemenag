@@ -45,15 +45,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-slip', [SlipGajiController::class, 'riwayat']);
     Route::patch('/ganti-password', [AuthController::class, 'gantiPassword']);
     Route::get('/profil', [AuthController::class, 'profil']);
+    Route::patch('/profil', [AuthController::class, 'updateProfil']);
 
-    Route::get('/import-gaji', [GajiImportController::class, 'index']);
-    Route::post('/import-gaji/preview', [GajiImportController::class, 'preview']);
+      Route::get('/import-gaji', [GajiImportController::class, 'index']);
+      Route::get('/import-gaji/period-status', [GajiImportController::class, 'periodStatus']);
+      Route::post('/import-gaji/preview', [GajiImportController::class, 'preview']);
     Route::delete('/import-gaji/preview', [GajiImportController::class, 'cancelReview']);
     Route::post('/import-gaji/reviewed', [GajiImportController::class, 'importReviewed']);
     Route::post('/import-gaji', [GajiImportController::class, 'store']);
 
     Route::get('/settings', [SettingController::class, 'show']);
     Route::patch('/settings', [SettingController::class, 'update']);
+    Route::post('/settings/signature', [SettingController::class, 'updateSignature']);
 
     Route::get('/pengumuman', [PengumumanController::class, 'index']);
     Route::post('/pengumuman', [PengumumanController::class, 'store']);

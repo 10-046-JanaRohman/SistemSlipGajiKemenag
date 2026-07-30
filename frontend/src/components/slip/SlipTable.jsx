@@ -27,7 +27,7 @@ function SlipTable({ data = [], loading }) {
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-x-auto">
 
-      <table className="w-full min-w-[900px] text-sm">
+      <table className="w-full min-w-[1040px] text-sm">
 
         <thead className="bg-green-700 text-white">
 
@@ -38,6 +38,8 @@ function SlipTable({ data = [], loading }) {
             <th className="px-5 py-3 text-left font-semibold">Nama</th>
 
             <th className="px-5 py-3 text-left font-semibold">Bulan</th>
+
+            <th className="px-5 py-3 text-left font-semibold">Tanggal Dibagikan</th>
 
             <th className="px-5 py-3 text-right font-semibold">Total Gaji</th>
 
@@ -58,6 +60,7 @@ function SlipTable({ data = [], loading }) {
               nip={item.nip || item.pegawai?.nip || "-"}
               nama={item.nama || item.pegawai?.nama || "-"}
               bulan={item.bulan ? formatPeriode(item.bulan, item.tahun) : item.periode || "-"}
+              tanggalDibagikan={item.tanggal_dibagikan || item.tanggal_terbit}
               gaji={item.gaji_bersih_hitung ?? item.total_gaji ?? item.gaji_bersih ?? item.total ?? item.gaji_pokok}
               status={(item.status || (item.dibagikan === 1 ? "Dibagikan" : "Belum"))}
             />

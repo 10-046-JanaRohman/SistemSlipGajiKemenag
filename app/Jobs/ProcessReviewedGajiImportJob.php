@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\GajiImportBatch;
 use App\Models\Notifikasi;
+use App\Models\SlipGaji;
 use App\Services\GajiImportRowProcessor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,11 +47,22 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
             ->values();
 
         $success = 0;
+        $created = 0;
+        $updated = 0;
         $failureLog = collect($batch->log_gagal ?? []);
 
         foreach ($rows as $row) {
-            if ($processor->process($row['data'], $batch)) {
+            $result = $processor->process($row['data'], $batch);
+
+            if ($result === GajiImportRowProcessor::CREATED) {
                 $success++;
+                $created++;
+                continue;
+            }
+
+            if ($result === GajiImportRowProcessor::UPDATED) {
+                $success++;
+                $updated++;
                 continue;
             }
 
@@ -63,6 +75,8 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
         $batch->update([
             'jumlah_data' => $reviewRows->count(),
             'berhasil' => $success,
+            'ditambahkan' => $created,
+            'diperbarui' => $updated,
             'gagal' => $failureLog->count(),
             'log_gagal' => $failureLog->values()->all(),
         ]);
@@ -70,7 +84,29 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
         Notifikasi::create([
             'user_id' => $batch->uploaded_by,
             'judul' => 'Import gaji selesai diproses',
-            'isi' => "Berhasil: {$success} baris. Gagal: ".$failureLog->count().' baris.',
+            'isi' => "Periode {$batch->bulan} {$batch->tahun}. Ditambahkan: {$created}. Diperbarui: {$updated}. Gagal: ".$failureLog->count().'.',
         ]);
+
+        // Beri tahu setiap pegawai yang slipnya berhasil tersedia pada impor ini.
+        $employeeUserIds = SlipGaji::query()
+            ->with('pegawai:id,user_id')
+            ->where('import_batch_id', $batch->id)
+            ->get()
+            ->pluck('pegawai.user_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($employeeUserIds->isNotEmpty()) {
+            $now = now();
+            Notifikasi::insert($employeeUserIds->map(fn ($userId) => [
+                'user_id' => $userId,
+                'judul' => 'Slip gaji tersedia',
+                'isi' => "Slip gaji periode {$batch->bulan} {$batch->tahun} telah tersedia.",
+                'dibaca' => false,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])->all());
+        }
     }
 }

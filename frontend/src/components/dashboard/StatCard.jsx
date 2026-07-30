@@ -5,7 +5,7 @@ function formatRupiah(num) {
   return new Intl.NumberFormat("id-ID").format(n);
 }
 
-function StatCard({ title, value, color, isCurrency }) {
+function StatCard({ title, subtitle, value, color, isCurrency }) {
   const display = isCurrency ? `Rp ${formatRupiah(value)}` : formatRupiah(value);
 
   return (
@@ -13,6 +13,7 @@ function StatCard({ title, value, color, isCurrency }) {
       <p className="text-gray-500 leading-snug">
         {title}
       </p>
+      {subtitle && <p className="mt-1 text-xs font-medium text-slate-400">{subtitle}</p>}
       <h2
         className={`mt-3 font-bold leading-tight break-words ${
           isCurrency ? "text-2xl xl:text-3xl" : "text-4xl"

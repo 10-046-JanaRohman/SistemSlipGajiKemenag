@@ -5,6 +5,7 @@ import PageTransition from "../../components/common/PageTransition";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardStats from "../../components/dashboard/DashboardStats";
 import RecentActivity from "../../components/dashboard/RecentActivity";
+import DashboardPeriodSummary from "../../components/dashboard/DashboardPeriodSummary";
 import DashboardImportTable from "../../components/dashboard/DashboardImportTable";
 import DashboardLatestSlip from "../../components/dashboard/DashboardLatestSlip";
 import api from "../../services/api";
@@ -38,6 +39,8 @@ function Dashboard() {
           <DashboardStats data={data} loading={loading} />
 
           <RecentActivity data={data} />
+
+          <DashboardPeriodSummary data={data} />
 
           <DashboardImportTable data={data} />
 

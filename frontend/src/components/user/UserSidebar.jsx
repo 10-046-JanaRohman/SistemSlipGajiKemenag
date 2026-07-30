@@ -4,9 +4,9 @@ import logoKemenag from "../../assets/images/logo-kemenag.png";
 import {
   LayoutDashboard,
   FileText,
-  History,
   User,
   LogOut,
+  Info,
   X,
 } from "lucide-react";
 import api from "../../services/api";
@@ -67,12 +67,6 @@ function UserSidebar({ mobile = false, onClose }) {
         />
 
         <Menu
-          to="/user/riwayat"
-          icon={<History size={20} />}
-          text="Riwayat Slip"
-        />
-
-        <Menu
           to="/user/profil"
           icon={<User size={20} />}
           text="Profil"
@@ -80,8 +74,19 @@ function UserSidebar({ mobile = false, onClose }) {
 
       </nav>
 
-      {/* Logout */}
+      {/* Tautan informasi dan logout */}
       <div className="p-5 border-t border-green-800">
+
+        <NavLink
+          to="/user/tentang-aplikasi"
+          onClick={mobile ? onClose : undefined}
+          className={({ isActive }) => `mb-3 flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-green-100 transition hover:bg-green-800 ${isActive ? "bg-green-800" : ""}`}
+        >
+          <Info size={17} />
+          <span>Tentang Website</span>
+        </NavLink>
+
+        <div className="border-t border-green-800 pt-3">
 
         <button
           onClick={() => { if (mobile) onClose?.(); handleLogout(); }}
@@ -90,6 +95,8 @@ function UserSidebar({ mobile = false, onClose }) {
           <LogOut size={20} />
           <span>Logout</span>
         </button>
+
+        </div>
 
       </div>
 

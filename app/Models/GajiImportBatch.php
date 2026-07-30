@@ -17,6 +17,8 @@ class GajiImportBatch extends Model
         'lokasi_file',
         'jumlah_data',
         'berhasil',
+        'ditambahkan',
+        'diperbarui',
         'gagal',
         'log_gagal',
     ];

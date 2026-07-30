@@ -11,11 +11,15 @@ function SlipRow({
   nip,
   nama,
   bulan,
+  tanggalDibagikan,
   gaji,
   status,
   id,
 }) {
   const hasValidId = id !== undefined && id !== null && id !== "";
+  const tanggal = tanggalDibagikan
+    ? new Date(tanggalDibagikan).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+    : "-";
   
   return (
     <tr className="border-b hover:bg-gray-50">
@@ -25,6 +29,8 @@ function SlipRow({
       <td className="px-5 py-3 max-w-[260px] truncate">{nama}</td>
 
       <td className="px-5 py-3 whitespace-nowrap">{bulan}</td>
+
+      <td className="px-5 py-3 whitespace-nowrap">{tanggal}</td>
 
       <td className="px-5 py-3 text-right whitespace-nowrap">{formatRupiah(gaji)}</td>
 

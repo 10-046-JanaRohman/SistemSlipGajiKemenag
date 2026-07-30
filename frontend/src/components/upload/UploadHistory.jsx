@@ -5,10 +5,12 @@ import { formatPeriode } from "../../utils/formatPeriode";
 
 function formatDate(value) {
   if (!value) return "-";
-  return new Date(value).toLocaleDateString("id-ID", {
+  return new Date(value).toLocaleString("id-ID", {
     day: "2-digit",
     month: "long",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -54,12 +56,14 @@ function UploadHistory() {
       ) : !rows.length ? (
         <p className="py-12 text-center text-gray-500">Belum ada riwayat import.</p>
       ) : (
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[1100px]">
           <thead className="bg-green-700 text-white">
             <tr>
               <th className="py-4">Nama File</th>
               <th>Periode</th>
-              <th>Tanggal Import</th>
+              <th>Waktu Upload</th>
+              <th>Jumlah Data</th>
               <th>Status</th>
               <th>Keterangan</th>
               <th>Operator</th>
@@ -71,9 +75,20 @@ function UploadHistory() {
                 <td className="py-4 font-medium">{item.nama_file || item.file || "-"}</td>
                 <td>{item.bulan ? formatPeriode(item.bulan, item.tahun) : "-"}</td>
                 <td>{formatDate(item.created_at)}</td>
+                <td>{item.jumlah_data ?? ((item.berhasil || 0) + (item.gagal || 0))}</td>
                 <td>
                   <div className="flex flex-wrap justify-center gap-2">
-                    {item.berhasil > 0 && (
+                    {item.ditambahkan > 0 && (
+                      <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm">
+                        {item.ditambahkan} data baru
+                      </span>
+                    )}
+                    {item.diperbarui > 0 && (
+                      <span className="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-sm">
+                        {item.diperbarui} diperbarui
+                      </span>
+                    )}
+                    {item.berhasil > 0 && !item.ditambahkan && !item.diperbarui && (
                       <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm">
                         {item.berhasil} baris berhasil
                       </span>
@@ -83,7 +98,7 @@ function UploadHistory() {
                         {item.gagal} baris gagal
                       </span>
                     )}
-                    {!item.berhasil && !item.gagal && (
+                    {!item.berhasil && !item.gagal && !item.ditambahkan && !item.diperbarui && (
                       <span className="bg-yellow-100 text-yellow-700 px-4 py-1 rounded-full text-sm">
                         {item.status || "Diproses"}
                       </span>
@@ -105,6 +120,7 @@ function UploadHistory() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

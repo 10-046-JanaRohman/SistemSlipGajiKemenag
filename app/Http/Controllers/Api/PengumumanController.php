@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notifikasi;
 use App\Models\Pengumuman;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class PengumumanController extends Controller
@@ -44,6 +46,8 @@ class PengumumanController extends Controller
             'published_at' => $validated['published_at'] ?? now(),
             'created_by' => $request->user()->id,
         ]);
+
+        $this->notifyEmployees($pengumuman);
 
         return response()->json([
             'success' => true,
@@ -92,5 +96,31 @@ class PengumumanController extends Controller
             403,
             'Anda tidak memiliki akses untuk mengelola pengumuman.'
         );
+    }
+
+    private function notifyEmployees(Pengumuman $pengumuman): void
+    {
+        if (! $pengumuman->published_at || $pengumuman->published_at->isFuture()) {
+            return;
+        }
+
+        $employeeUserIds = User::query()
+            ->whereIn('role', ['pegawai', 'user'])
+            ->pluck('id');
+
+        if ($employeeUserIds->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+
+        Notifikasi::insert($employeeUserIds->map(fn ($userId) => [
+            'user_id' => $userId,
+            'judul' => 'Pengumuman baru',
+            'isi' => $pengumuman->judul."\n".$pengumuman->isi,
+            'dibaca' => false,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all());
     }
 }
