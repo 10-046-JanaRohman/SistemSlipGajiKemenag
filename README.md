@@ -1,24 +1,35 @@
-# SistemSlipGajiKemenag
+# Sistem Slip Gaji Kemenag
 
-Sistem Informasi Slip Gaji Kementerian Agama Provinsi Lampung
+Sistem Informasi Slip Gaji Kementerian Agama Provinsi Lampung untuk mengelola data pegawai, proses impor gaji, dan distribusi slip gaji.
 
-## About
+## Tentang Proyek
 
-Sistem Slip Gaji Kemenag Lampung adalah aplikasi web untuk mengelola data pegawai dan slip gaji di lingkungan Kementerian Agama Provinsi Lampung. Aplikasi ini dibangun menggunakan Laravel dengan fitur-fitur berikut:
+Sistem Slip Gaji Kemenag Lampung adalah aplikasi web yang membantu pengelolaan data pegawai dan slip gaji di lingkungan Kementerian Agama Provinsi Lampung.
 
-- **Manajemen Pegawai**: CRUD data pegawai dengan import dari Excel
-- **Slip Gaji**: Generate dan kelola slip gaji bulanan
-- **Import Excel**: Import data pegawai dan gaji dari file Excel
-- **Role-based Access**: Admin dan Pegawai dengan hak akses berbeda
-- **API Endpoints**: RESTful API untuk integrasi dengan React frontend
+- **Manajemen Pegawai**: CRUD data pegawai dan impor dari Excel.
+- **Slip Gaji**: Membuat, mengelola, dan melihat slip gaji bulanan.
+- **Impor Excel**: Review serta impor data gaji dari file Excel.
+- **Akses Berbasis Peran**: Hak akses untuk Super Admin, Admin, dan Pegawai.
+- **REST API**: API untuk integrasi frontend React.
 
-## Tech Stack
+## Teknologi
 
-- **Backend**: Laravel 11
-- **Database**: MySQL
-- **Frontend**: Blade Templates + Tailwind CSS
+- **Backend**: Laravel 11 dan PHP
+- **Frontend**: React 19, Vite, dan Tailwind CSS
+- **Database**: SQLite (default) atau MySQL
 - **Excel Import**: Maatwebsite Excel
-- **Authentication**: Laravel Sanctum (untuk API)
+- **Autentikasi API**: Laravel Sanctum
+
+## Prasyarat
+
+Pastikan perangkat telah memiliki:
+
+- PHP 8.2 atau versi yang kompatibel dengan Laravel 11
+- Composer
+- Node.js 20+ dan npm
+- MySQL 8+ bila tidak menggunakan SQLite
+
+## Instalasi
 
 ## Features
 
@@ -44,10 +55,9 @@ git clone https://github.com/10-046-JanaRohman/SistemSlipGajiKemenag.git
 cd SistemSlipGajiKemenag
 ```
 
-2. Install dependencies:
+2. Install dependency backend:
 ```bash
 composer install
-npm install
 ```
 
 3. Copy environment file:
@@ -55,12 +65,13 @@ npm install
 cp .env.example .env
 ```
 
-4. Generate application key:
+4. Generate application key dan siapkan database SQLite:
 ```bash
 php artisan key:generate
+php -r "file_put_contents('database/database.sqlite', '');"
 ```
 
-5. Setup database:
+5. Jalankan migrasi dan seeder:
 ```bash
 php artisan migrate
 php artisan db:seed
@@ -71,9 +82,59 @@ php artisan db:seed
 php artisan storage:link
 ```
 
-7. Start development server:
+7. Jalankan backend:
 ```bash
 php artisan serve
+```
+
+Backend berjalan secara default di `http://localhost:8000`.
+
+## Konfigurasi Environment
+
+Secara default, proyek menggunakan SQLite. Pastikan `.env` memuat konfigurasi berikut:
+
+```env
+APP_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:5173
+DB_CONNECTION=sqlite
+```
+
+Untuk MySQL, ubah bagian database di `.env` menjadi:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nama_database
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+## Menjalankan Frontend React
+
+Buka terminal baru dari direktori proyek, lalu jalankan:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend berjalan secara default di `http://localhost:5173`. Pastikan backend Laravel telah berjalan sebelum menggunakan aplikasi.
+
+## Build dan Pengujian
+
+Build frontend untuk production:
+
+```bash
+cd frontend
+npm run build
+```
+
+Jalankan test backend:
+
+```bash
+php artisan test
 ```
 
 ## API Documentation
@@ -90,5 +151,5 @@ Proyek ini dikembangkan secara kolaboratif oleh:
 
 | Nama | Peran | Tanggung Jawab |
 | --- | --- | --- |
-| Jana Rohman Wasiso | Backend Developer | Laravel, API, database, dan logika aplikasi |
-| Adelia Ramadani | Frontend Developer | Antarmuka React dan pengalaman pengguna |
+| [Jana Rohman Wasiso](https://github.com/10-046-JanaRohman) | Backend Developer | Laravel, API, database, dan logika aplikasi |
+| [Adelia Ramadani](https://github.com/07-183-AdeliaRamadani) | Frontend Developer | Antarmuka React dan pengalaman pengguna |
