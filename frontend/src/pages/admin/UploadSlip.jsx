@@ -8,6 +8,7 @@ import UploadDropzone from "../../components/upload/UploadDropzone";
 import UploadNote from "../../components/upload/UploadNote";
 import UploadButton from "../../components/upload/UploadButton";
 import UploadHistory from "../../components/upload/UploadHistory";
+import { formatPeriode } from "../../utils/formatPeriode";
 
 const numericReviewColumns = new Set([
   "bulan", "tahun", "nogaji", "kdjns", "kdgol", "gjpokok", "tjistri",
@@ -17,9 +18,16 @@ const numericReviewColumns = new Set([
   "pottabrum", "bersih", "kdkawin", "kdjab", "thngj",
   "bpjs", "bpjs2",
 ]);
-const reviewStorageKey = "gaji-import-review";
+const reviewStorageKey = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return `gaji-import-review:${user?.id || user?.nip || "anonymous"}`;
+  } catch {
+    return "gaji-import-review:anonymous";
+  }
+};
 
-const clearSavedReview = () => localStorage.removeItem(reviewStorageKey);
+const clearSavedReview = () => localStorage.removeItem(reviewStorageKey());
 
 const normalizeNumber = (value) => {
   if (value === null || value === undefined || value === "") return null;
@@ -65,6 +73,53 @@ function UploadSlip() {
   const [reviewToken, setReviewToken] = useState("");
   const [reviewChanges, setReviewChanges] = useState({});
   const [reviewHydrated, setReviewHydrated] = useState(false);
+  const [activeReviews, setActiveReviews] = useState([]);
+  const [loadingActiveReviews, setLoadingActiveReviews] = useState(false);
+  const [periodReviewStatus, setPeriodReviewStatus] = useState(null);
+  const [loadingPeriodReview, setLoadingPeriodReview] = useState(false);
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })();
+  const isSuperAdmin = currentUser?.role === "super_admin";
+
+  const loadActiveReviews = async () => {
+    if (!isSuperAdmin) return;
+
+    setLoadingActiveReviews(true);
+    try {
+      const result = await api.getActiveImportReviews();
+      const payload = result?.data || result;
+      setActiveReviews(Array.isArray(payload) ? payload : []);
+    } catch {
+      setActiveReviews([]);
+    } finally {
+      setLoadingActiveReviews(false);
+    }
+  };
+
+  const loadPeriodReviewStatus = async (selectedBulan = bulan, selectedTahun = tahun) => {
+    if (!selectedBulan || !selectedTahun) {
+      setPeriodReviewStatus(null);
+      return null;
+    }
+
+    setLoadingPeriodReview(true);
+    try {
+      const result = await api.getImportReviewStatus(selectedBulan, selectedTahun);
+      const payload = result?.data || result;
+      setPeriodReviewStatus(payload);
+      return payload;
+    } catch {
+      setPeriodReviewStatus(null);
+      return null;
+    } finally {
+      setLoadingPeriodReview(false);
+    }
+  };
 
   const handleFileSelect = (selectedFile) => {
     setFile(selectedFile);
@@ -95,6 +150,20 @@ function UploadSlip() {
   const handlePreview = async () => {
     if (!validateBaseInput()) return;
 
+    const lock = await loadPeriodReviewStatus();
+    if (lock?.active) {
+      const review = lock.review;
+      const owner = review?.created_by_name || "admin lain";
+      if (lock.can_take_over) {
+        setMessage(`Periode ${formatPeriode(bulan, tahun)} sedang direview oleh ${owner}. Gunakan tombol Ambil Alih Review untuk melanjutkannya.`);
+      } else if (lock.is_owner) {
+        setMessage(`Periode ${formatPeriode(bulan, tahun)} sedang Anda review. Lanjutkan review yang sudah ada terlebih dahulu.`);
+      } else {
+        setMessage(`Periode ${formatPeriode(bulan, tahun)} sedang direview oleh ${owner}. Admin lain tidak dapat membuat review baru untuk periode ini.`);
+      }
+      return;
+    }
+
     setUploading(true);
     setMessage("");
     setPreview(null);
@@ -104,11 +173,12 @@ function UploadSlip() {
     clearSavedReview();
 
     try {
-      const result = await api.previewImportGaji({ file, page: 1 });
+      const result = await api.previewImportGaji({ file, page: 1, bulan, tahun });
       const payload = result?.data || result;
       setPreview(payload);
       setReviewToken(payload?.review_token || "");
       setMessage(result?.message || "Preview Excel berhasil dibuat. Silakan cek dan edit data sebelum import.");
+      loadActiveReviews();
     } catch (err) {
       setMessage(err.message || "Preview Excel gagal.");
     } finally {
@@ -226,7 +296,7 @@ function UploadSlip() {
       let savedReview;
 
       try {
-        savedReview = JSON.parse(localStorage.getItem(reviewStorageKey) || "null");
+        savedReview = JSON.parse(localStorage.getItem(reviewStorageKey()) || "null");
       } catch {
         clearSavedReview();
       }
@@ -273,6 +343,14 @@ function UploadSlip() {
   }, []);
 
   useEffect(() => {
+    loadActiveReviews();
+  }, []);
+
+  useEffect(() => {
+    loadPeriodReviewStatus();
+  }, [bulan, tahun]);
+
+  useEffect(() => {
     if (!reviewHydrated) return;
 
     if (!reviewToken) {
@@ -280,7 +358,7 @@ function UploadSlip() {
       return;
     }
 
-    localStorage.setItem(reviewStorageKey, JSON.stringify({
+    localStorage.setItem(reviewStorageKey(), JSON.stringify({
       reviewToken,
       bulan,
       tahun,
@@ -346,6 +424,8 @@ function UploadSlip() {
       setReviewChanges({});
       clearSavedReview();
       setRefreshKey((k) => k + 1);
+      loadActiveReviews();
+      loadPeriodReviewStatus();
     } catch (err) {
       setMessage(err.message || "Import hasil review gagal.");
     } finally {
@@ -369,12 +449,63 @@ function UploadSlip() {
       setReviewChanges({});
       clearSavedReview();
       setMessage(result?.message || "Review Excel dibatalkan.");
+      loadActiveReviews();
+      loadPeriodReviewStatus();
     } catch (err) {
       setMessage(err.message || "Gagal membatalkan review Excel.");
     } finally {
       setUploading(false);
     }
   };
+
+  const handleOpenActiveReview = async (item) => {
+    setUploading(true);
+    setMessage("");
+
+    try {
+      const result = await api.previewImportGaji({ reviewToken: item.review_token, page: 1 });
+      const payload = result?.data || result;
+      setPreview(payload);
+      setReviewToken(payload?.review_token || item.review_token);
+      setPreviewPage(1);
+      setReviewChanges({});
+      setFile(null);
+      if (payload?.bulan) setBulan(String(payload.bulan));
+      if (payload?.tahun) setTahun(String(payload.tahun));
+      setMessage(`Review milik ${item.created_by_name || "admin"} dibuka.`);
+    } catch (err) {
+      setMessage(err.message || "Review Excel tidak dapat dibuka.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleTakeOverReview = async (item) => {
+    const owner = item.created_by_name || "admin lain";
+    if (!window.confirm(`Ambil alih review ${formatPeriode(item.bulan, item.tahun)} dari ${owner}?\n\nAdmin sebelumnya tidak dapat melanjutkan review ini.`)) {
+      return;
+    }
+
+    setUploading(true);
+    setMessage("");
+    try {
+      const result = await api.takeOverImportReview(item.review_token);
+      const review = result?.data || item;
+      await handleOpenActiveReview(review);
+      setMessage(result?.message || "Review berhasil diambil alih.");
+      loadActiveReviews();
+      loadPeriodReviewStatus(review.bulan, review.tahun);
+    } catch (err) {
+      setMessage(err.message || "Review Excel tidak dapat diambil alih.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const activePeriodReview = periodReviewStatus?.active ? periodReviewStatus.review : null;
+  const reviewStartedAt = activePeriodReview?.created_at
+    ? new Date(activePeriodReview.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })
+    : null;
 
   // Header berasal langsung dari Excel agar setiap kolom dapat diperiksa dan diperbaiki.
   const previewColumns = preview?.headers || [];
@@ -396,9 +527,23 @@ function UploadSlip() {
           />
           <UploadNote />
 
+          {activePeriodReview && !periodReviewStatus?.is_owner && (
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+              <div>
+                <p className="font-bold">Periode {formatPeriode(bulan, tahun)} sedang direview oleh {activePeriodReview.created_by_name}.</p>
+                <p className="mt-1 text-amber-800">{reviewStartedAt ? `Dimulai ${reviewStartedAt}. ` : ""}Periode terkunci hingga review dibatalkan atau import selesai.</p>
+              </div>
+              {periodReviewStatus?.can_take_over && (
+                <button type="button" onClick={() => handleTakeOverReview(activePeriodReview)} disabled={uploading} className="rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60">
+                  Ambil Alih Review
+                </button>
+              )}
+            </div>
+          )}
+
           {message && (
             <div className={`p-4 rounded-xl text-sm font-semibold ${
-              message.toLowerCase().includes("berhasil") || message.toLowerCase().includes("sukses") || message.toLowerCase().includes("dibatalkan")
+              message.toLowerCase().includes("berhasil") || message.toLowerCase().includes("sukses") || message.toLowerCase().includes("dibatalkan") || message.toLowerCase().includes("dipulihkan") || message.toLowerCase().includes("dibuka")
                 ? "bg-green-50 text-green-700 border border-green-200"
                 : "bg-red-50 text-red-700 border border-red-200"
             }`}>
@@ -408,10 +553,67 @@ function UploadSlip() {
 
           <UploadButton
             onClick={handlePreview}
-            disabled={uploading || !file}
+            disabled={uploading || !file || loadingPeriodReview || Boolean(activePeriodReview)}
             loading={uploading}
             label={preview ? "Review Ulang Excel" : "Review Excel"}
           />
+
+          {isSuperAdmin && (
+            <div className="rounded-2xl bg-white p-6 shadow-md">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Review Aktif Admin</h2>
+                  <p className="mt-1 text-sm text-gray-500">Super Admin dapat membuka atau membatalkan review milik seluruh admin.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadActiveReviews}
+                  disabled={loadingActiveReviews}
+                  className="rounded-lg border border-green-700 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-50 disabled:opacity-60"
+                >
+                  {loadingActiveReviews ? "Memuat..." : "Muat Ulang"}
+                </button>
+              </div>
+
+              {!activeReviews.length ? (
+                <p className="py-3 text-sm text-gray-500">Tidak ada review aktif dari admin.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead className="border-b text-left text-gray-500">
+                      <tr>
+                        <th className="pb-3">File</th>
+                        <th className="pb-3">Pembuat</th>
+                        <th className="pb-3">Periode</th>
+                        <th className="pb-3">Baris</th>
+                        <th className="pb-3 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeReviews.map((item) => (
+                        <tr key={item.review_token} className="border-b last:border-none">
+                          <td className="max-w-[260px] truncate py-3 font-medium">{item.nama_file}</td>
+                          <td>{item.created_by_name}</td>
+                          <td>{item.bulan ? formatPeriode(item.bulan, item.tahun) : "Belum dipilih"}</td>
+                          <td>{item.total_baris || 0}</td>
+                          <td className="py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => Number(item.created_by) === Number(currentUser?.id) ? handleOpenActiveReview(item) : handleTakeOverReview(item)}
+                              disabled={uploading}
+                              className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {Number(item.created_by) === Number(currentUser?.id) ? "Buka Review" : "Ambil Alih Review"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           {preview && (
             <div className="space-y-4 rounded-2xl bg-white p-6 shadow-md">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { User, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import Button from "../common/Button";
 import api from "../../services/api";
+import logoKemenag from "../../assets/images/logo-kemenag.png";
 
 function LoginRight() {
   const navigate = useNavigate();
@@ -50,6 +51,28 @@ function LoginRight() {
   return (
     <form onSubmit={handleSubmit} className="flex w-full items-center justify-center bg-white px-6 py-10 sm:px-10 md:w-1/2">
       <div className="w-full max-w-[430px]">
+
+        {/* Identitas ringkas khusus layar ponsel */}
+        <div className="mb-8 flex flex-col items-center text-center md:hidden">
+          <img
+            src={logoKemenag}
+            alt="Logo Kementerian Agama"
+            className="w-14"
+          />
+
+          <p className="mt-3 text-sm font-bold text-green-800">
+            KEMENTERIAN AGAMA
+          </p>
+          <p className="text-xs font-medium text-green-700">
+            PROVINSI LAMPUNG
+          </p>
+
+          <h1 className="mt-5 text-2xl font-extrabold leading-tight tracking-tight text-slate-800">
+            SISTEM DASHBOARD
+            <br />
+            SLIP GAJI KARYAWAN
+          </h1>
+        </div>
 
         {/* Judul */}
         <h2 className="text-4xl font-bold text-slate-800 sm:text-5xl">

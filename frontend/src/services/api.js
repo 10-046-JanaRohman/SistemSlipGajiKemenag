@@ -270,6 +270,18 @@ class ApiService {
     return this.request("GET", `/import-gaji${this.buildQuery(params)}`);
   }
 
+  async getActiveImportReviews() {
+    return this.request("GET", "/import-gaji/reviews");
+  }
+
+  async getImportReviewStatus(bulan, tahun) {
+    return this.request("GET", `/import-gaji/review-status${this.buildQuery({ bulan, tahun })}`);
+  }
+
+  async takeOverImportReview(reviewToken) {
+    return this.request("POST", `/import-gaji/reviews/${reviewToken}/take-over`);
+  }
+
   async getImportPeriodStatus(bulan, tahun) {
     return this.request("GET", `/import-gaji/period-status${this.buildQuery({ bulan, tahun })}`);
   }
@@ -283,13 +295,19 @@ class ApiService {
     return this.request("POST", "/import-gaji", formData);
   }
 
-  async previewImportGaji({ file, reviewToken, page = 1 }) {
+  async previewImportGaji({ file, reviewToken, page = 1, bulan, tahun }) {
     const formData = new FormData();
     if (file) {
       formData.append("file_excel", file);
     }
     if (reviewToken) {
       formData.append("review_token", reviewToken);
+    }
+    if (bulan) {
+      formData.append("bulan", bulan);
+    }
+    if (tahun) {
+      formData.append("tahun", tahun);
     }
     formData.append("page", page);
 
