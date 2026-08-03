@@ -33,4 +33,20 @@ class NotifikasiController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function destroy(Request $request, Notifikasi $notifikasi)
+    {
+        abort_unless($notifikasi->user_id === $request->user()->id, 404);
+
+        $notifikasi->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroyAll(Request $request)
+    {
+        $deleted = $request->user()->notifikasis()->delete();
+
+        return response()->json(['success' => true, 'deleted' => $deleted]);
+    }
 }

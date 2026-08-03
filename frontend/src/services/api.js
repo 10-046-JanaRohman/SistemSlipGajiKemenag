@@ -164,6 +164,14 @@ class ApiService {
     return this.request("PATCH", "/notifikasi/read-all");
   }
 
+  async deleteNotifikasi(id) {
+    return this.request("DELETE", `/notifikasi/${id}`);
+  }
+
+  async deleteAllNotifikasi() {
+    return this.request("DELETE", "/notifikasi");
+  }
+
   // ==================== PEGAWAI ====================
 
   async getPegawai(page = 1, params = {}) {

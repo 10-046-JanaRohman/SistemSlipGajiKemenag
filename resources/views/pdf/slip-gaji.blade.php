@@ -173,6 +173,31 @@
             padding-right: 0.4mm;
         }
 
+        /* Garis perhitungan hanya dipakai pada kolom gaji pokok dan tunjangan keluarga,
+           mengikuti format daftar gaji resmi. */
+        .amount-stack .subtotal {
+            margin-top: 0.45mm;
+            padding-top: 0.9mm;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .amount-stack .subtotal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 1.2mm;
+            border-top: 0.7pt solid #000;
+        }
+
+        .amount-stack .subtotal-symbol {
+            position: absolute;
+            right: 0;
+            top: -2.1mm;
+            font-weight: normal;
+        }
+
         .amount-stack .total {
             font-weight: bold;
         }
@@ -192,7 +217,7 @@
             left: 50%;
             top: 105mm;
             transform: translate(-50%, -50%) rotate(-18deg);
-            font-size: 40pt;
+            font-size: 47pt;
             font-weight: bold;
             font-style: italic;
             color: #d3d3d3;
@@ -662,11 +687,9 @@
                 <td class="right">
                     <div class="cell-box tall amount-stack">
                         <div>{{ $money($gpokok) }}</div>
-                        <div>{{ $money((float) $tjistri + (float) $tjanak) }}</div>
                         <div>{{ $money($tjistri) }}</div>
                         <div>{{ $money($tjanak) }}</div>
-                        <div>-</div>
-                        <div class="total">{{ $money((float) $gpokok + (float) $tjistri + (float) $tjanak) }}</div>
+                        <div class="subtotal"><span class="subtotal-symbol">+</span>{{ $money((float) $gpokok + (float) $tjistri + (float) $tjanak) }}</div>
                     </div>
                 </td>
 

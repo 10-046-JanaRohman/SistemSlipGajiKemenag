@@ -116,8 +116,8 @@ class PengumumanController extends Controller
 
         Notifikasi::insert($employeeUserIds->map(fn ($userId) => [
             'user_id' => $userId,
-            'judul' => 'Pengumuman baru',
-            'isi' => $pengumuman->judul."\n".$pengumuman->isi,
+            'judul' => $pengumuman->judul,
+            'isi' => $pengumuman->isi,
             'dibaca' => false,
             'created_at' => $now,
             'updated_at' => $now,

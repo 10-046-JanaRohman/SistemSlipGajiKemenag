@@ -29,6 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifikasi', [NotifikasiController::class, 'index']);
     Route::patch('/notifikasi/read-all', [NotifikasiController::class, 'markAllAsRead']);
     Route::patch('/notifikasi/{notifikasi}/read', [NotifikasiController::class, 'markAsRead']);
+    Route::delete('/notifikasi', [NotifikasiController::class, 'destroyAll']);
+    Route::delete('/notifikasi/{notifikasi}', [NotifikasiController::class, 'destroy']);
 
     Route::get('/pegawai', [PegawaiController::class, 'index']);
     Route::post('/pegawai', [PegawaiController::class, 'store']);
