@@ -86,4 +86,9 @@ Proprietary - Kementerian Agama Provinsi Lampung
 
 ## Developer
 
-Developed by Jana Rohman
+Proyek ini dikembangkan secara kolaboratif oleh:
+
+| Nama | Peran | Tanggung Jawab |
+| --- | --- | --- |
+| Jana Rohman Wasiso | Backend Developer | Laravel, API, database, dan logika aplikasi |
+| Adelia Ramadani | Frontend Developer | Antarmuka React dan pengalaman pengguna |
