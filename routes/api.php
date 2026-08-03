@@ -48,8 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/profil', [AuthController::class, 'updateProfil']);
 
       Route::get('/import-gaji', [GajiImportController::class, 'index']);
+      Route::get('/import-gaji/reviews', [GajiImportController::class, 'activeReviews']);
+      Route::get('/import-gaji/review-status', [GajiImportController::class, 'reviewStatus']);
       Route::get('/import-gaji/period-status', [GajiImportController::class, 'periodStatus']);
       Route::post('/import-gaji/preview', [GajiImportController::class, 'preview']);
+    Route::post('/import-gaji/reviews/{reviewToken}/take-over', [GajiImportController::class, 'takeOverReview']);
     Route::delete('/import-gaji/preview', [GajiImportController::class, 'cancelReview']);
     Route::post('/import-gaji/reviewed', [GajiImportController::class, 'importReviewed']);
     Route::post('/import-gaji', [GajiImportController::class, 'store']);

@@ -100,6 +100,17 @@ class GajiImportController extends Controller
             'file_excel' => ['required', 'file', 'extensions:xlsx,xls,csv', 'max:20480'],
         ]);
 
+        // Endpoint impor langsung juga menghormati kunci review agar tidak ada
+        // proses lama yang menimpa data ketika sebuah periode sedang diperiksa.
+        $activeReview = $this->activeReviewForPeriod((int) $validated['bulan'], (int) $validated['tahun']);
+        if ($activeReview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Periode '.$this->periodLabel($validated['bulan'], $validated['tahun'])
+                    .' sedang direview oleh '.($activeReview['draft']['created_by_name'] ?? 'admin lain').'.',
+            ], 409);
+        }
+
         $file = $request->file('file_excel');
         $path = $file->store('imports/gaji', 'public');
 
@@ -123,6 +134,57 @@ class GajiImportController extends Controller
         ], 202);
     }
 
+    public function activeReviews(Request $request)
+    {
+        if ($request->user()?->role !== 'super_admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Super Admin yang dapat melihat review aktif seluruh admin.',
+            ], 403);
+        }
+
+        $reviews = collect(Storage::disk('local')->files('import-reviews'))
+            ->filter(fn ($path) => str_ends_with($path, '.json'))
+            ->map(fn ($path) => $this->reviewMetadata(
+                basename($path, '.json'),
+                json_decode(Storage::disk('local')->get($path), true) ?: []
+            ))
+            ->sortByDesc('created_at')
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review aktif berhasil diambil.',
+            'data' => $reviews,
+        ]);
+    }
+
+    /** Status kunci review untuk satu periode, dapat dilihat semua admin. */
+    public function reviewStatus(Request $request)
+    {
+        if (! in_array($request->user()?->role, ['admin', 'super_admin'], true)) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk memeriksa review.'], 403);
+        }
+
+        $validated = $request->validate([
+            'bulan' => ['required', 'integer', 'between:1,12'],
+            'tahun' => ['required', 'digits:4'],
+        ]);
+
+        $active = $this->activeReviewForPeriod((int) $validated['bulan'], (int) $validated['tahun']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'active' => $active !== null,
+                'review' => $active ? $this->reviewMetadata($active['token'], $active['draft']) : null,
+                'is_owner' => $active && (int) ($active['draft']['created_by'] ?? 0) === (int) $request->user()->id,
+                'can_take_over' => $active && $request->user()->role === 'super_admin'
+                    && (int) ($active['draft']['created_by'] ?? 0) !== (int) $request->user()->id,
+            ],
+        ]);
+    }
+
     public function preview(Request $request)
     {
         if ($request->user()?->role !== 'admin' && $request->user()?->role !== 'super_admin') {
@@ -136,6 +198,8 @@ class GajiImportController extends Controller
             'file_excel' => ['nullable', 'file', 'extensions:xlsx,xls,csv', 'max:20480'],
             'review_token' => ['nullable', 'string'],
             'page' => ['nullable', 'integer', 'min:1'],
+            'bulan' => ['nullable', 'integer', 'between:1,12'],
+            'tahun' => ['nullable', 'digits:4'],
         ]);
 
         $reviewToken = $request->input('review_token');
@@ -145,16 +209,7 @@ class GajiImportController extends Controller
         $headers = [];
 
         if ($request->filled('review_token')) {
-            $path = "import-reviews/{$request->review_token}.json";
-
-            if (! Storage::disk('local')->exists($path)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data review Excel tidak ditemukan. Silakan upload ulang file.',
-                ], 422);
-            }
-
-            $draft = json_decode(Storage::disk('local')->get($path), true) ?: [];
+            [, $draft] = $this->authorizedReviewDraft($request, $request->review_token);
             $headers = $draft['headers'] ?? [];
             $rows = $draft['rows'] ?? [];
         } else {
@@ -233,14 +288,36 @@ class GajiImportController extends Controller
                 ];
             }
 
+            $period = $request->validate([
+                'bulan' => ['required', 'integer', 'between:1,12'],
+                'tahun' => ['required', 'digits:4'],
+            ]);
+
+            $active = $this->activeReviewForPeriod((int) $period['bulan'], (int) $period['tahun']);
+            if ($active) {
+                $owner = $active['draft']['created_by_name'] ?? 'admin lain';
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Periode '. $this->periodLabel($period['bulan'], $period['tahun'])
+                        .' sedang direview oleh '.$owner.'. Selesaikan atau batalkan review tersebut terlebih dahulu.',
+                    'data' => ['review' => $this->reviewMetadata($active['token'], $active['draft'])],
+                ], 409);
+            }
+
             $reviewToken = (string) Str::uuid();
+            $draft = [
+                'nama_file' => $request->file('file_excel')->getClientOriginalName(),
+                'created_by' => $request->user()->id,
+                'created_by_name' => $request->user()->name,
+                'created_at' => now()->toIso8601String(),
+                'bulan' => (int) $period['bulan'],
+                'tahun' => (int) $period['tahun'],
+                'headers' => array_values(array_filter($headers)),
+                'rows' => $this->refreshReviewRows($rows),
+            ];
             Storage::disk('local')->put(
                 "import-reviews/{$reviewToken}.json",
-                json_encode([
-                    'nama_file' => $request->file('file_excel')->getClientOriginalName(),
-                    'headers' => array_values(array_filter($headers)),
-                    'rows' => $this->refreshReviewRows($rows),
-                ], JSON_UNESCAPED_UNICODE)
+                json_encode($draft, JSON_UNESCAPED_UNICODE)
             );
 
             $request->merge(['review_token' => $reviewToken]);
@@ -266,6 +343,8 @@ class GajiImportController extends Controller
             'message' => 'Preview Excel berhasil dibuat.',
             'data' => [
                 'review_token' => $reviewToken,
+                'bulan' => $draft['bulan'] ?? null,
+                'tahun' => $draft['tahun'] ?? null,
                 'headers' => array_values(array_filter($headers)),
                 'rows' => $previewRows,
                 'total' => count($rows),
@@ -306,16 +385,7 @@ class GajiImportController extends Controller
             ], 422);
         }
 
-        $path = "import-reviews/{$reviewToken}.json";
-
-        if (! Storage::disk('local')->exists($path)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data review Excel tidak ditemukan. Silakan review ulang file Excel.',
-            ], 422);
-        }
-
-        $draft = json_decode(Storage::disk('local')->get($path), true) ?: [];
+        [$path, $draft] = $this->authorizedReviewDraft($request, $reviewToken);
         $draftRows = collect($draft['rows'] ?? []);
 
         if ($editedRows->isNotEmpty()) {
@@ -339,6 +409,7 @@ class GajiImportController extends Controller
         Storage::disk('local')->put(
             $path,
             json_encode([
+                ...$draft,
                 'nama_file' => $draft['nama_file'] ?? null,
                 'headers' => $draft['headers'] ?? [],
                 'rows' => $draftRows->values()->all(),
@@ -391,15 +462,35 @@ class GajiImportController extends Controller
             'review_token' => ['required', 'string'],
         ]);
 
-        $path = "import-reviews/{$validated['review_token']}.json";
-
-        if (Storage::disk('local')->exists($path)) {
-            Storage::disk('local')->delete($path);
-        }
+        [$path] = $this->authorizedReviewDraft($request, $validated['review_token']);
+        Storage::disk('local')->delete($path);
 
         return response()->json([
             'success' => true,
             'message' => 'Review Excel dibatalkan.',
+        ]);
+    }
+
+    /** Super Admin mengambil alih review agar pemilik lama tidak dapat melanjutkannya. */
+    public function takeOverReview(Request $request, string $reviewToken)
+    {
+        if ($request->user()?->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => 'Hanya Super Admin yang dapat mengambil alih review.'], 403);
+        }
+
+        [$path, $draft] = $this->authorizedReviewDraft($request, $reviewToken);
+        $previousOwner = $draft['created_by_name'] ?? 'Admin tidak diketahui';
+
+        $draft['taken_over_from_name'] = $previousOwner;
+        $draft['taken_over_at'] = now()->toIso8601String();
+        $draft['created_by'] = $request->user()->id;
+        $draft['created_by_name'] = $request->user()->name;
+        Storage::disk('local')->put($path, json_encode($draft, JSON_UNESCAPED_UNICODE));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review berhasil diambil alih dari '.$previousOwner.'.',
+            'data' => $this->reviewMetadata($reviewToken, $draft),
         ]);
     }
 
@@ -409,6 +500,74 @@ class GajiImportController extends Controller
         $value = preg_replace('/[^a-z0-9]+/i', '_', $value);
 
         return trim($value ?? '', '_');
+    }
+
+    /**
+     * Draft review hanya dapat diakses pembuatnya. Super admin memiliki akses
+     * penuh untuk membantu atau menyelesaikan review admin lain.
+     */
+    private function authorizedReviewDraft(Request $request, string $reviewToken): array
+    {
+        $path = "import-reviews/{$reviewToken}.json";
+
+        if (! Storage::disk('local')->exists($path)) {
+            abort(422, 'Data review Excel tidak ditemukan. Silakan upload ulang file.');
+        }
+
+        $draft = json_decode(Storage::disk('local')->get($path), true) ?: [];
+        $user = $request->user();
+
+        // Draft lama belum memiliki pemilik. Klaim oleh akun pertama yang
+        // melanjutkannya supaya setelah ini tetap terlindungi per akun.
+        if (empty($draft['created_by'])) {
+            $draft['created_by'] = $user->id;
+            $draft['created_by_name'] = $user->name;
+            $draft['created_at'] = $draft['created_at'] ?? now()->toIso8601String();
+            Storage::disk('local')->put($path, json_encode($draft, JSON_UNESCAPED_UNICODE));
+        }
+
+        if ($user->role !== 'super_admin' && (int) $draft['created_by'] !== (int) $user->id) {
+            abort(403, 'Review Excel ini dibuat oleh admin lain dan tidak dapat Anda lanjutkan atau batalkan.');
+        }
+
+        return [$path, $draft];
+    }
+
+    private function activeReviewForPeriod(int $bulan, int $tahun): ?array
+    {
+        foreach (Storage::disk('local')->files('import-reviews') as $path) {
+            if (! str_ends_with($path, '.json')) {
+                continue;
+            }
+
+            $draft = json_decode(Storage::disk('local')->get($path), true) ?: [];
+            if ((int) ($draft['bulan'] ?? 0) === $bulan && (int) ($draft['tahun'] ?? 0) === $tahun) {
+                return ['token' => basename($path, '.json'), 'draft' => $draft];
+            }
+        }
+
+        return null;
+    }
+
+    private function reviewMetadata(string $reviewToken, array $draft): array
+    {
+        return [
+            'review_token' => $reviewToken,
+            'nama_file' => $draft['nama_file'] ?? 'File tidak diketahui',
+            'created_by' => $draft['created_by'] ?? null,
+            'created_by_name' => $draft['created_by_name'] ?? 'Belum diketahui',
+            'created_at' => $draft['created_at'] ?? null,
+            'bulan' => $draft['bulan'] ?? null,
+            'tahun' => $draft['tahun'] ?? null,
+            'total_baris' => count($draft['rows'] ?? []),
+        ];
+    }
+
+    private function periodLabel(int $bulan, int $tahun): string
+    {
+        $months = [1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        return ($months[$bulan] ?? 'Periode').' '.$tahun;
     }
 
     private function rowValues($row): array

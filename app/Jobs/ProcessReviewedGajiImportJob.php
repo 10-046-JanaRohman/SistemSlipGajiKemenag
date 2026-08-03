@@ -108,5 +108,8 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
                 'updated_at' => $now,
             ])->all());
         }
+
+        // Draft tidak lagi aktif setelah seluruh baris selesai diproses.
+        Storage::disk('local')->delete($path);
     }
 }
