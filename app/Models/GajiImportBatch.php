@@ -15,6 +15,7 @@ class GajiImportBatch extends Model
         'tahun',
         'nama_file',
         'lokasi_file',
+        'status',
         'jumlah_data',
         'berhasil',
         'ditambahkan',

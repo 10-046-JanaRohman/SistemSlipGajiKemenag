@@ -19,7 +19,14 @@ function NotificationBell() {
     }
   };
 
-  useEffect(() => { loadNotifications(); }, []);
+  useEffect(() => {
+    const refreshNotifications = () => loadNotifications();
+
+    loadNotifications();
+    window.addEventListener("notifikasi:perbarui", refreshNotifications);
+
+    return () => window.removeEventListener("notifikasi:perbarui", refreshNotifications);
+  }, []);
 
   const openPanel = () => {
     setOpen((current) => !current);

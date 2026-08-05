@@ -294,6 +294,10 @@ class ApiService {
     return this.request("GET", `/import-gaji/period-status${this.buildQuery({ bulan, tahun })}`);
   }
 
+  async getImportBatchStatus(id) {
+    return this.request("GET", `/import-gaji/${id}/status`);
+  }
+
   async importGaji({ file, bulan, tahun }) {
     const formData = new FormData();
     formData.append("file_excel", file);

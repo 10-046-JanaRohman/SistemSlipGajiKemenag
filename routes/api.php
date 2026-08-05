@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
       Route::get('/import-gaji/reviews', [GajiImportController::class, 'activeReviews']);
       Route::get('/import-gaji/review-status', [GajiImportController::class, 'reviewStatus']);
       Route::get('/import-gaji/period-status', [GajiImportController::class, 'periodStatus']);
+      Route::get('/import-gaji/{batch}/status', [GajiImportController::class, 'batchStatus'])->whereNumber('batch');
       Route::post('/import-gaji/preview', [GajiImportController::class, 'preview']);
     Route::post('/import-gaji/reviews/{reviewToken}/take-over', [GajiImportController::class, 'takeOverReview']);
     Route::delete('/import-gaji/preview', [GajiImportController::class, 'cancelReview']);

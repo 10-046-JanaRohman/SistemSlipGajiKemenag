@@ -12,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class ProcessGajiImportJob implements ShouldQueue
 {
@@ -27,6 +28,7 @@ class ProcessGajiImportJob implements ShouldQueue
         \Log::info('JOB START');
 
         $batch = GajiImportBatch::findOrFail($this->batchId);
+        $batch->update(['status' => 'processing']);
 
         \Log::info('BATCH FOUND');
 
@@ -51,11 +53,29 @@ class ProcessGajiImportJob implements ShouldQueue
             'ditambahkan' => $import->created,
             'diperbarui'  => $import->updated,
             'gagal'       => $import->failed,
+            'status'      => 'completed',
         ]);
 
         $this->notifyImportResult($batch);
 
         \Log::info('JOB FINISHED');
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        $batch = GajiImportBatch::find($this->batchId);
+
+        if (! $batch) {
+            return;
+        }
+
+        $batch->update(['status' => 'failed']);
+
+        Notifikasi::create([
+            'user_id' => $batch->uploaded_by,
+            'judul' => 'Import gaji gagal diproses',
+            'isi' => "Periode {$batch->bulan} {$batch->tahun} gagal diproses. Silakan periksa riwayat import.",
+        ]);
     }
 
     private function notifyImportResult(GajiImportBatch $batch): void

@@ -29,6 +29,24 @@ const reviewStorageKey = () => {
 
 const clearSavedReview = () => localStorage.removeItem(reviewStorageKey());
 
+const importCompletionMessage = (batch) => {
+  const berhasil = Number(batch?.berhasil || 0);
+  const ditambahkan = Number(batch?.ditambahkan || 0);
+  const diperbarui = Number(batch?.diperbarui || 0);
+  const gagal = Number(batch?.gagal || 0);
+  const periode = formatPeriode(batch?.bulan, batch?.tahun);
+
+  if (batch?.status === "failed") {
+    return `Import ${periode} gagal diproses. Silakan periksa riwayat import.`;
+  }
+
+  if (berhasil <= 0) {
+    return `Import ${periode} selesai diproses, tetapi tidak ada data valid yang berhasil diimport. Gagal: ${gagal} baris.`;
+  }
+
+  return `Import berhasil. Periode ${periode}: ${ditambahkan} data baru ditambahkan, ${diperbarui} data diperbarui, ${gagal} baris gagal.`;
+};
+
 const normalizeNumber = (value) => {
   if (value === null || value === undefined || value === "") return null;
   const raw = String(value).trim();
@@ -68,6 +86,7 @@ function UploadSlip() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [queuedBatchId, setQueuedBatchId] = useState(null);
   const [preview, setPreview] = useState(null);
   const [previewPage, setPreviewPage] = useState(1);
   const [reviewToken, setReviewToken] = useState("");
@@ -351,6 +370,42 @@ function UploadSlip() {
   }, [bulan, tahun]);
 
   useEffect(() => {
+    if (!queuedBatchId) return undefined;
+
+    let active = true;
+    let timerId;
+
+    const pollBatchStatus = async () => {
+      try {
+        const result = await api.getImportBatchStatus(queuedBatchId);
+        const batch = result?.data || result;
+
+        if (!active) return;
+
+        if (["completed", "failed"].includes(batch?.status)) {
+          setQueuedBatchId(null);
+          setMessage(importCompletionMessage(batch));
+          setRefreshKey((key) => key + 1);
+          loadPeriodReviewStatus(batch.bulan, batch.tahun);
+          window.dispatchEvent(new Event("notifikasi:perbarui"));
+          return;
+        }
+      } catch {
+        // Queue bisa masih memulai proses. Coba lagi tanpa mengganggu halaman admin.
+      }
+
+      if (active) timerId = window.setTimeout(pollBatchStatus, 3000);
+    };
+
+    pollBatchStatus();
+
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
+  }, [queuedBatchId]);
+
+  useEffect(() => {
     if (!reviewHydrated) return;
 
     if (!reviewToken) {
@@ -416,7 +471,9 @@ function UploadSlip() {
         rows,
         reviewToken: reviewToken || preview.review_token,
       });
-      setMessage(result?.message || "Import hasil review berhasil.");
+      const queuedBatch = result?.data || result;
+      setMessage(result?.message || "Import masuk antrean dan sedang diproses.");
+      setQueuedBatchId(queuedBatch?.id || null);
       setFile(null);
       setPreview(null);
       setPreviewPage(1);
@@ -506,6 +563,12 @@ function UploadSlip() {
   const reviewStartedAt = activePeriodReview?.created_at
     ? new Date(activePeriodReview.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })
     : null;
+  const normalizedMessage = message.toLowerCase();
+  const isProcessingMessage = normalizedMessage.includes("antrean") || normalizedMessage.includes("di belakang layar");
+  const isSuccessMessage = normalizedMessage.includes("berhasil")
+    || normalizedMessage.includes("dibatalkan")
+    || normalizedMessage.includes("dipulihkan")
+    || normalizedMessage.includes("dibuka");
 
   // Header berasal langsung dari Excel agar setiap kolom dapat diperiksa dan diperbaiki.
   const previewColumns = preview?.headers || [];
@@ -543,9 +606,11 @@ function UploadSlip() {
 
           {message && (
             <div className={`p-4 rounded-xl text-sm font-semibold ${
-              message.toLowerCase().includes("berhasil") || message.toLowerCase().includes("sukses") || message.toLowerCase().includes("dibatalkan") || message.toLowerCase().includes("dipulihkan") || message.toLowerCase().includes("dibuka")
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-red-50 text-red-700 border border-red-200"
+              isProcessingMessage
+                ? "border border-blue-200 bg-blue-50 text-blue-700"
+                : isSuccessMessage
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
             }`}>
               {message}
             </div>

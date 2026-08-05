@@ -120,6 +120,7 @@ class GajiImportController extends Controller
             'tahun' => $validated['tahun'],
             'nama_file' => $file->getClientOriginalName(),
             'lokasi_file' => $path,
+            'status' => 'queued',
             'jumlah_data' => 0,
             'berhasil' => 0,
             'gagal' => 0,
@@ -132,6 +133,29 @@ class GajiImportController extends Controller
             'message' => 'File masuk antrean import.',
             'data' => $batch,
         ], 202);
+    }
+
+    /**
+     * Dipanggil frontend saat menunggu queue agar hasil import muncul tanpa refresh halaman.
+     */
+    public function batchStatus(Request $request, GajiImportBatch $batch)
+    {
+        if (! in_array($request->user()?->role, ['admin', 'super_admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk melihat status import.',
+            ], 403);
+        }
+
+        abort_unless(
+            $request->user()->role === 'super_admin' || $batch->uploaded_by === $request->user()->id,
+            403
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $batch->fresh(),
+        ]);
     }
 
     public function activeReviews(Request $request)
@@ -429,6 +453,7 @@ class GajiImportController extends Controller
             'tahun' => $validated['tahun'],
             'nama_file' => $draft['nama_file'] ?? 'Review Excel Manual',
             'lokasi_file' => "review://{$reviewToken}",
+            'status' => 'queued',
             'jumlah_data' => $draftRows->count(),
             'berhasil' => 0,
             'gagal' => $invalidRows->count(),

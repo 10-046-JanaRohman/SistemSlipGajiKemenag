@@ -12,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class ProcessReviewedGajiImportJob implements ShouldQueue
 {
@@ -30,13 +31,17 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
             return;
         }
 
+        $batch->update(['status' => 'processing']);
+
         $path = "import-reviews/{$this->reviewToken}.json";
 
         if (! Storage::disk('local')->exists($path)) {
             $batch->update([
                 'berhasil' => 0,
                 'gagal' => $batch->jumlah_data ?: 0,
+                'status' => 'failed',
             ]);
+            $this->notifyImportFailure($batch);
             return;
         }
 
@@ -79,6 +84,7 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
             'diperbarui' => $updated,
             'gagal' => $failureLog->count(),
             'log_gagal' => $failureLog->values()->all(),
+            'status' => 'completed',
         ]);
 
         Notifikasi::create([
@@ -111,5 +117,24 @@ class ProcessReviewedGajiImportJob implements ShouldQueue
 
         // Draft tidak lagi aktif setelah seluruh baris selesai diproses.
         Storage::disk('local')->delete($path);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        $batch = GajiImportBatch::find($this->batchId);
+
+        if ($batch) {
+            $batch->update(['status' => 'failed']);
+            $this->notifyImportFailure($batch);
+        }
+    }
+
+    private function notifyImportFailure(GajiImportBatch $batch): void
+    {
+        Notifikasi::create([
+            'user_id' => $batch->uploaded_by,
+            'judul' => 'Import gaji gagal diproses',
+            'isi' => "Periode {$batch->bulan} {$batch->tahun} gagal diproses. Silakan periksa riwayat import.",
+        ]);
     }
 }
