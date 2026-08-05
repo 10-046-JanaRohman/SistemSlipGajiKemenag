@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\PengumumanController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\NotifikasiController;
+use App\Http\Controllers\Api\SlipGajiSignatureRequestController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -43,6 +44,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/slip-gaji/{slipGaji}', [SlipGajiController::class, 'show']);
     Route::get('/slip-gaji/{slipGaji}/pdf-url', [SlipGajiController::class, 'pdfUrl']);
     Route::get('/slip-gaji/{slipGaji}/pdf', [SlipGajiController::class, 'pdf']);
+    Route::post('/slip-gaji/{slipGaji}/signature-request', [SlipGajiSignatureRequestController::class, 'store']);
+
+    Route::get('/slip-signature-requests', [SlipGajiSignatureRequestController::class, 'index']);
+    Route::patch('/slip-signature-requests/{signatureRequest}/review', [SlipGajiSignatureRequestController::class, 'review']);
 
     Route::get('/riwayat-slip', [SlipGajiController::class, 'riwayat']);
     Route::patch('/ganti-password', [AuthController::class, 'gantiPassword']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SlipGaji;
+use App\Models\SlipGajiSignatureRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -17,7 +18,7 @@ class SlipGajiController extends Controller
         $query = SlipGaji::with('pegawai');
 
         // Jika pegawai, hanya tampilkan slip miliknya
-        if ($user->role === 'pegawai') {
+        if (in_array($user->role, ['pegawai', 'user'], true)) {
             $pegawai = $user->pegawai;
             if ($pegawai) {
                 $query->where('pegawai_id', $pegawai->id);
@@ -53,7 +54,7 @@ class SlipGajiController extends Controller
         $slips = $query->latest()
             ->paginate(10);
 
-        $this->appendCalculatedTotals($slips);
+        $this->appendCalculatedTotals($slips, $user);
 
         return response()->json([
             'success' => true,
@@ -70,7 +71,7 @@ class SlipGajiController extends Controller
         $slipGaji->load('pegawai');
 
         // Jika pegawai, cek apakah slip miliknya
-        if ($user->role === 'pegawai') {
+        if (in_array($user->role, ['pegawai', 'user'], true)) {
             $pegawai = $user->pegawai;
             if (!$pegawai || $slipGaji->pegawai_id !== $pegawai->id) {
                 return response()->json([
@@ -88,6 +89,7 @@ class SlipGajiController extends Controller
                 'rincian' => SlipGajiFormatter::format(
                     $slipGaji->detail_gaji ?? []
                 ),
+                'signature_request' => $this->latestSignatureRequestFor($slipGaji, $user),
             ]
         ]);
     }
@@ -96,7 +98,7 @@ class SlipGajiController extends Controller
     {
         $user = $request->user();
         
-        if ($user->role === 'pegawai') {
+        if (in_array($user->role, ['pegawai', 'user'], true)) {
             $pegawai = $user->pegawai;
             if (!$pegawai) {
                 return response()->json([
@@ -160,7 +162,7 @@ class SlipGajiController extends Controller
             ->orderByDesc('bulan')
             ->paginate(10);
 
-        $this->appendCalculatedTotals($slips);
+        $this->appendCalculatedTotals($slips, $user);
 
         return response()->json([
             'success' => true,
@@ -173,17 +175,25 @@ class SlipGajiController extends Controller
     {
         $this->authorizePdfAccess($request, $slipGaji);
 
-        return $this->buildPdf($slipGaji)->stream($this->pdfFilename($slipGaji));
+        $signatureRequest = $this->approvedSignatureRequest($request, $slipGaji);
+
+        return $this->buildPdf($slipGaji, (bool) $signatureRequest)->stream($this->pdfFilename($slipGaji));
     }
 
     public function pdfUrl(Request $request, SlipGaji $slipGaji)
     {
         $this->authorizePdfAccess($request, $slipGaji);
+        $signatureRequest = $this->approvedSignatureRequest($request, $slipGaji);
+
+        $parameters = ['slipGaji' => $slipGaji->id];
+        if ($signatureRequest) {
+            $parameters['signature_request_id'] = $signatureRequest->id;
+        }
 
         $path = URL::temporarySignedRoute(
             'slip-gaji.pdf-download',
             now()->addMinutes(5),
-            ['slipGaji' => $slipGaji->id],
+            $parameters,
             false
         );
 
@@ -195,29 +205,32 @@ class SlipGajiController extends Controller
         ]);
     }
 
-    public function pdfDownload(SlipGaji $slipGaji)
+    public function pdfDownload(Request $request, SlipGaji $slipGaji)
     {
-        return $this->buildPdf($slipGaji)->download($this->pdfFilename($slipGaji));
+        $signatureRequest = $this->approvedSignatureRequest($request, $slipGaji, false);
+
+        return $this->buildPdf($slipGaji, (bool) $signatureRequest)->download($this->pdfFilename($slipGaji));
     }
 
     private function authorizePdfAccess(Request $request, SlipGaji $slipGaji): void
     {
         $user = $request->user();
 
-        if ($user->role === 'pegawai') {
+        if (in_array($user->role, ['pegawai', 'user'], true)) {
             $pegawai = $user->pegawai;
 
             abort_unless($pegawai && $slipGaji->pegawai_id === $pegawai->id, 403, 'Anda tidak memiliki akses ke slip ini.');
         }
     }
 
-    private function buildPdf(SlipGaji $slipGaji)
+    private function buildPdf(SlipGaji $slipGaji, bool $showSignature = false)
     {
         $slipGaji->load('pegawai');
 
         return Pdf::loadView('pdf.slip-gaji', [
             'slip' => $slipGaji,
             'rincian' => SlipGajiFormatter::format($slipGaji->detail_gaji ?? []),
+            'showSignature' => $showSignature,
         ])->setPaper('a4', 'landscape');
     }
 
@@ -232,9 +245,9 @@ class SlipGajiController extends Controller
             . '.pdf';
     }
 
-    private function appendCalculatedTotals($paginator): void
+    private function appendCalculatedTotals($paginator, $user = null): void
     {
-        $paginator->getCollection()->transform(function (SlipGaji $slip) {
+        $paginator->getCollection()->transform(function (SlipGaji $slip) use ($user) {
             $rincian = SlipGajiFormatter::format($slip->detail_gaji ?? []);
             $gajiBersih = $rincian['gaji_bersih'] ?? $slip->gaji_bersih;
 
@@ -245,8 +258,42 @@ class SlipGajiController extends Controller
             $slip->setAttribute('status', $slip->tanggal_terbit ? 'Sudah Dibagikan' : 'Belum Dibagikan');
             $slip->setAttribute('dibagikan', $slip->tanggal_terbit ? 1 : 0);
             $slip->setAttribute('tanggal_dibagikan', $slip->tanggal_terbit);
+            $slip->setAttribute('signature_request', $this->latestSignatureRequestFor($slip, $user));
 
             return $slip;
         });
+    }
+
+    private function latestSignatureRequestFor(SlipGaji $slipGaji, $user = null): ?SlipGajiSignatureRequest
+    {
+        $query = $slipGaji->signatureRequests()
+            ->with(['user', 'reviewer'])
+            ->latest();
+
+        if ($user && in_array($user->role, ['pegawai', 'user'], true)) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query->first();
+    }
+
+    private function approvedSignatureRequest(Request $request, SlipGaji $slipGaji, bool $checkUser = true): ?SlipGajiSignatureRequest
+    {
+        if (!$request->filled('signature_request_id')) {
+            return null;
+        }
+
+        $signatureRequest = SlipGajiSignatureRequest::where('id', $request->query('signature_request_id'))
+            ->where('slip_gaji_id', $slipGaji->id)
+            ->where('status', SlipGajiSignatureRequest::STATUS_APPROVED)
+            ->first();
+
+        abort_unless($signatureRequest, 403, 'Pengajuan TTD belum disetujui.');
+
+        if ($checkUser && in_array($request->user()->role, ['pegawai', 'user'], true)) {
+            abort_unless($signatureRequest->user_id === $request->user()->id, 403, 'Anda tidak memiliki akses ke pengajuan TTD ini.');
+        }
+
+        return $signatureRequest;
     }
 }

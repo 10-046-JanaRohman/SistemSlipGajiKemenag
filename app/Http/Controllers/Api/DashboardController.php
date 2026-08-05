@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Pegawai;
 use App\Models\SlipGaji;
+use App\Models\SlipGajiSignatureRequest;
 use App\Models\User;
 use App\Services\SlipGajiFormatter;
 use Illuminate\Http\Request;
@@ -36,6 +37,12 @@ class DashboardController extends Controller
 
             $slips = SlipGaji::where('pegawai_id', $pegawai->id);
             $slipTerakhir = $slips->orderByDesc('tahun')->orderByDesc('bulan')->first();
+            if ($slipTerakhir) {
+                $slipTerakhir->setAttribute('signature_request', SlipGajiSignatureRequest::where('slip_gaji_id', $slipTerakhir->id)
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->first());
+            }
             $totalSlip = $slips->count();
             $gajiTerakhir = $slipTerakhir?->gaji_bersih ?? 0;
             $statusSlip = $slipTerakhir ? 'Sudah Terbit' : 'Belum Ada Slip';

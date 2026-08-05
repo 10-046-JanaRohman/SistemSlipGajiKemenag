@@ -212,23 +212,6 @@
             vertical-align: bottom !important;
         }
 
-        .watermark {
-            position: fixed;
-            left: 50%;
-            top: 105mm;
-            transform: translate(-50%, -50%) rotate(-18deg);
-            font-size: 47pt;
-            font-weight: bold;
-            font-style: italic;
-            color: #d3d3d3;
-            letter-spacing: 1.2pt;
-            line-height: 1.05;
-            text-align: center;
-            z-index: 1;
-            pointer-events: none;
-            white-space: pre-line;
-        }
-
         .signature-area {
             position: relative;
             width: 100%;
@@ -282,27 +265,6 @@
             min-width: 42mm;
             font-size: 8pt;
             font-weight: bold;
-        }
-
-        .stamp-area {
-            position: absolute;
-            left: 41.5%;
-            top: -5mm;
-            width: 35mm;
-            height: 31mm;
-            border: 0.8pt dashed #9b9b9b;
-            border-radius: 50%;
-            color: #777;
-            text-align: center;
-            font-size: 6pt;
-            line-height: 1.25;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: pre-line;
-            text-transform: uppercase;
-            z-index: 3;
         }
 
         .footer-note {
@@ -570,7 +532,7 @@
     $potBpjs = (float) $bpjs + (float) $bpjs2;
     $potLain = (float) $potswrum + (float) $potkelbtj + (float) $potlain + (float) $pottabrum;
 
-    $watermarkText = "HANYA UNTUK\nKEPERLUAN\nBPJS";
+    $showSignature = $showSignature ?? false;
 @endphp
 
 <div class="sheet">
@@ -587,8 +549,6 @@
     <div class="payment">PEMBAYARAN : {{ $pembayaran }}</div>
 
     <div class="table-zone">
-        <div class="watermark">{{ $watermarkText }}</div>
-
         <table class="slip-table">
         <colgroup>
             <col width="2.34%" style="width:2.34%">
@@ -792,12 +752,10 @@
     </div>
 
     <div class="signature-area">
-        <div class="stamp-area">TEMPAT
-STEMPEL</div>
         <div class="signature-box">
             <div class="lead">Mengetahui :</div>
             <div class="role">Bendahara Gaji</div>
-            @if(is_file($signatureFile))
+            @if($showSignature && is_file($signatureFile))
                 <img
                     src="{{ $signatureFile }}"
                     alt="Tanda tangan Bendahara"

@@ -61,4 +61,14 @@ class SlipGaji extends Model
             'import_batch_id'
         );
     }
+
+    public function signatureRequests()
+    {
+        return $this->hasMany(SlipGajiSignatureRequest::class);
+    }
+
+    public function latestSignatureRequest()
+    {
+        return $this->hasOne(SlipGajiSignatureRequest::class)->latestOfMany();
+    }
 }

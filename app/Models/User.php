@@ -50,6 +50,11 @@ class User extends Authenticatable
         return $this->hasMany(Notifikasi::class);
     }
 
+    public function slipGajiSignatureRequests()
+    {
+        return $this->hasMany(SlipGajiSignatureRequest::class);
+    }
+
     /**
      * Relasi ke Aktivitas Log
      */
@@ -63,6 +68,6 @@ class User extends Authenticatable
      */
     public function isAdmin()
     {
-        return $this->role === 'admin';
+        return in_array($this->role, ['admin', 'super_admin'], true);
     }
 }
