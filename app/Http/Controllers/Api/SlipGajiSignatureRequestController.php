@@ -26,6 +26,10 @@ class SlipGajiSignatureRequestController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('slip_gaji_id')) {
+            $query->where('slip_gaji_id', $request->integer('slip_gaji_id'));
+        }
+
         return response()->json([
             'success' => true,
             'data' => $query->paginate(10),
@@ -59,7 +63,7 @@ class SlipGajiSignatureRequestController extends Controller
                 'message' => $existing->status === SlipGajiSignatureRequest::STATUS_APPROVED
                     ? 'Pengajuan TTD slip ini sudah disetujui.'
                     : 'Pengajuan TTD slip ini masih menunggu persetujuan.',
-                'data' => $existing,
+                'data' => $existing->load(['slipGaji.pegawai', 'user', 'reviewer']),
             ], 409);
         }
 
@@ -85,7 +89,7 @@ class SlipGajiSignatureRequestController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pengajuan TTD berhasil dikirim.',
-            'data' => $signatureRequest->load(['slipGaji.pegawai', 'user']),
+            'data' => $signatureRequest->load(['slipGaji.pegawai', 'user', 'reviewer']),
         ], 201);
     }
 

@@ -1,8 +1,9 @@
 import { Bell, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 
 function NotificationBell() {
+  const containerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -21,12 +22,43 @@ function NotificationBell() {
 
   useEffect(() => {
     const refreshNotifications = () => loadNotifications();
+    const timeoutId = window.setTimeout(() => {
+      loadNotifications();
+    }, 0);
 
-    loadNotifications();
     window.addEventListener("notifikasi:perbarui", refreshNotifications);
 
-    return () => window.removeEventListener("notifikasi:perbarui", refreshNotifications);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("notifikasi:perbarui", refreshNotifications);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const closeWhenOutside = (event) => {
+      if (!containerRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    const closeWithEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeWhenOutside);
+    document.addEventListener("touchstart", closeWhenOutside);
+    document.addEventListener("keydown", closeWithEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", closeWhenOutside);
+      document.removeEventListener("touchstart", closeWhenOutside);
+      document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [open]);
 
   const openPanel = () => {
     setOpen((current) => !current);
@@ -54,7 +86,7 @@ function NotificationBell() {
   };
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button type="button" onClick={openPanel} className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 transition hover:bg-gray-200" aria-label="Buka notifikasi">
         <Bell size={20} />
         {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 min-w-2 rounded-full bg-red-500 px-1 text-[10px] leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
