@@ -204,8 +204,8 @@ class ApiService {
     return this.request("GET", `/slip-gaji/${id}`);
   }
 
-  async getSlipPdf(id) {
-    return this.downloadPdf(`/slip-gaji/${id}/pdf`, `slip-gaji-${id}.pdf`);
+  async getSlipPdf(id, options = {}) {
+    return this.downloadPdf(`/slip-gaji/${id}/pdf`, options);
   }
 
   async getRiwayatSlip(params = {}) {
@@ -222,6 +222,20 @@ class ApiService {
 
   async getSlipSayaDetail(id) {
     return this.request("GET", `/slip-gaji/${id}`);
+  }
+
+  async requestSlipSignature(id, requestMessage) {
+    return this.request("POST", `/slip-gaji/${id}/signature-request`, {
+      request_message: requestMessage,
+    });
+  }
+
+  async getSlipSignatureRequests(params = {}) {
+    return this.request("GET", `/slip-signature-requests${this.buildQuery(params)}`);
+  }
+
+  async reviewSlipSignatureRequest(id, data) {
+    return this.request("PATCH", `/slip-signature-requests/${id}/review`, data);
   }
 
   // ==================== PROFIL ====================
@@ -341,9 +355,9 @@ class ApiService {
 
   // ==================== PDF DOWNLOAD ====================
 
-  async downloadPdf(path, filename = "download.pdf") {
+  async downloadPdf(path, params = {}) {
     const signedPath = path.replace(/\/pdf$/, "/pdf-url");
-    const result = await this.request("GET", signedPath);
+    const result = await this.request("GET", `${signedPath}${this.buildQuery(params)}`);
     const url = result?.data?.url || result?.url;
 
     if (!url) {

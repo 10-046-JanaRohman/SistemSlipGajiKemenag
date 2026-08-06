@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
 import PageTransition from "../../components/common/PageTransition";
+import SignatureDownloadButton from "../../components/user/SignatureDownloadButton";
 import api from "../../services/api";
 import { formatPeriode } from "../../utils/formatPeriode";
 
 function SlipSaya() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [downloadError, setDownloadError] = useState("");
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -22,15 +22,18 @@ function SlipSaya() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      fetchData();
+    }, 0);
 
-  const handleDownload = async (id) => {
-    setDownloadError("");
-    try {
-      await api.downloadPdf(`/slip-gaji/${id}/pdf`, `slip-gaji-${id}.pdf`);
-    } catch (error) {
-      setDownloadError(error.message || "Gagal mengunduh PDF.");
-    }
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchData]);
+
+  const updateSignatureRequest = (id, signatureRequest) => {
+    setData((current) => current.map((item) => (
+      item.id === id ? { ...item, signature_request: signatureRequest } : item
+    )));
   };
 
   const formatTanggalDibagikan = (value) => {
@@ -51,12 +54,6 @@ function SlipSaya() {
             <h1 className="text-5xl font-bold text-slate-800">Slip Gaji Saya</h1>
             <p className="text-gray-500 mt-2">Daftar slip gaji Anda.</p>
           </div>
-
-          {downloadError && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {downloadError}
-            </div>
-          )}
 
           {loading ? (
             <p className="text-gray-500">Memuat...</p>
@@ -97,12 +94,13 @@ function SlipSaya() {
                           >
                             Detail
                           </Link>
-                          <button
-                            onClick={() => handleDownload(item.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-                          >
-                            Download
-                          </button>
+                          <SignatureDownloadButton
+                            slipId={item.id}
+                            signatureRequest={item.signature_request}
+                            onUpdated={(signatureRequest) => updateSignatureRequest(item.id, signatureRequest)}
+                            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                            label="Download"
+                          />
                         </div>
                       </td>
                     </tr>

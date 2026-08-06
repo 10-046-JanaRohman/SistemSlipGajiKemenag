@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
 import PageTransition from "../../components/common/PageTransition";
+import SignatureDownloadButton from "../../components/user/SignatureDownloadButton";
 import api from "../../services/api";
 import { formatPeriode } from "../../utils/formatPeriode";
 
@@ -21,7 +22,20 @@ function RiwayatSlip() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      fetchData();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchData]);
+
+  const updateSignatureRequest = (id, signatureRequest) => {
+    setData((current) => current.map((item) => (
+      item.id === id ? { ...item, signature_request: signatureRequest } : item
+    )));
+  };
+
   return (
     <UserLayout>
       <PageTransition>
@@ -64,12 +78,13 @@ function RiwayatSlip() {
                           >
                             Detail
                           </Link>
-                          <button
-                            onClick={() => api.downloadPdf(`/slip-gaji/${item.id}/pdf`, `slip-gaji-${item.id}.pdf`)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-                          >
-                            Download
-                          </button>
+                          <SignatureDownloadButton
+                            slipId={item.id}
+                            signatureRequest={item.signature_request}
+                            onUpdated={(signatureRequest) => updateSignatureRequest(item.id, signatureRequest)}
+                            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                            label="Download"
+                          />
                         </div>
                       </td>
                     </tr>

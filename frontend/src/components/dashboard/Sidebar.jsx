@@ -4,6 +4,7 @@ import logoKemenag from "../../assets/images/logo-kemenag.png";
 import {
   LayoutDashboard,
   FileText,
+  ClipboardCheck,
   Users,
   UserRound,
   Upload,
@@ -75,6 +76,12 @@ function Sidebar({ mobile = false, onClose }) {
           to="/admin/slip-gaji"
           icon={<FileText size={20} />}
           text="Slip Gaji"
+        />
+
+        <Menu
+          to="/admin/pengajuan-ttd"
+          icon={<ClipboardCheck size={20} />}
+          text="Pengajuan TTD"
         />
 
         <Menu

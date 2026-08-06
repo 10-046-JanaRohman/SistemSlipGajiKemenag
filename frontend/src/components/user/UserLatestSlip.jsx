@@ -1,12 +1,11 @@
 import {
   Calendar,
   Wallet,
-  Download,
   Eye,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import api from "../../services/api";
+import SignatureDownloadButton from "./SignatureDownloadButton";
 import { formatPeriode } from "../../utils/formatPeriode";
 
 function formatRupiah(num) {
@@ -17,8 +16,9 @@ function formatRupiah(num) {
 }
 
 function UserLatestSlip({ data, loading }) {
-  const [downloadError, setDownloadError] = useState("");
+  const [signatureRequestState, setSignatureRequestState] = useState({ slipId: null, request: null });
   const slip = data?.slip_terakhir ?? null;
+  const slipId = slip?.id ?? null;
 
   if (loading) {
     return (
@@ -34,18 +34,9 @@ function UserLatestSlip({ data, loading }) {
   const periode = slip ? formatPeriode(slip.bulan, slip.tahun) : "-";
   const gaji = slip?.gaji_bersih ?? 0;
   const status = data?.status_slip || "Belum Ada Slip";
-  const slipId = slip?.id ?? null;
-
-  const handleDownload = async () => {
-    if (!slipId) return;
-
-    setDownloadError("");
-    try {
-      await api.getSlipPdf(slipId);
-    } catch (error) {
-      setDownloadError(error.message || "Gagal mengunduh PDF.");
-    }
-  };
+  const currentSignatureRequest = signatureRequestState.slipId === slipId
+    ? signatureRequestState.request
+    : slip?.signature_request || null;
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-8">
@@ -131,14 +122,13 @@ function UserLatestSlip({ data, loading }) {
                 Lihat Slip
               </Link>
 
-              <button
-                type="button"
-                onClick={handleDownload}
+              <SignatureDownloadButton
+                slipId={slipId}
+                signatureRequest={currentSignatureRequest}
+                onUpdated={(request) => setSignatureRequestState({ slipId, request })}
                 className="w-full border border-green-700 text-green-700 hover:bg-green-50 py-3 rounded-xl flex justify-center items-center gap-2 transition"
-              >
-                <Download size={20} />
-                Download PDF
-              </button>
+                label="Download PDF"
+              />
             </>
           ) : (
             <p className="text-gray-500 text-center py-6">
@@ -149,12 +139,6 @@ function UserLatestSlip({ data, loading }) {
         </div>
 
       </div>
-
-      {downloadError && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          {downloadError}
-        </div>
-      )}
 
     </div>
   );

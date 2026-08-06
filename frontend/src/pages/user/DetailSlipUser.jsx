@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Loader2, Download, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import UserLayout from "../../layouts/UserLayout";
 import PageTransition from "../../components/common/PageTransition";
+import SignatureDownloadButton from "../../components/user/SignatureDownloadButton";
 import api from "../../services/api";
 import { formatPeriode } from "../../utils/formatPeriode";
 
@@ -18,40 +19,46 @@ function DetailSlipUser() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     if (!id || id === "undefined" || id === "null") {
-      setError("ID slip tidak ditemukan.");
-      setLoading(false);
-      return;
+      const timeoutId = window.setTimeout(() => {
+        setError("ID slip tidak ditemukan.");
+        setLoading(false);
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
+
+    let active = true;
     const fetchDetail = async () => {
       try {
         const result = await api.getSlipDetail(id);
         const payload = result?.data || result;
         const slip = payload?.slip || payload;
+        if (!active) return;
         setData({
           ...slip,
           rincian: payload?.rincian || slip?.rincian || slip?.detail_gaji || {},
+          signature_request: payload?.signature_request || slip?.signature_request || null,
         });
       } catch (err) {
+        if (!active) return;
         setError(err.message || "Gagal memuat data slip.");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
-    fetchDetail();
-  }, [id]);
 
-  const handleDownload = async () => {
-    setDownloadError("");
-    try {
-      await api.getSlipPdf(id);
-    } catch (err) {
-      setDownloadError(err.message || "Gagal mengunduh PDF.");
-    }
-  };
+    const timeoutId = window.setTimeout(() => {
+      fetchDetail();
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [id]);
 
   if (loading) {
     return (
@@ -153,20 +160,14 @@ function DetailSlipUser() {
           </div>
 
           {/* Tombol */}
-          {downloadError && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {downloadError}
-            </div>
-          )}
-
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <button
-              onClick={handleDownload}
+            <SignatureDownloadButton
+              slipId={id}
+              signatureRequest={data?.signature_request}
+              onUpdated={(signatureRequest) => setData((current) => ({ ...current, signature_request: signatureRequest }))}
               className="justify-center bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-2"
-            >
-              <Download size={20} />
-              Download PDF
-            </button>
+              label="Download PDF"
+            />
             <Link
               to="/user/slip"
               className="justify-center bg-gray-200 hover:bg-gray-300 px-8 py-3 rounded-xl font-semibold flex items-center gap-2"

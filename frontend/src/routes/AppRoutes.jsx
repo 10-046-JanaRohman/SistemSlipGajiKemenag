@@ -16,6 +16,7 @@ import Pegawai from "../pages/admin/Pegawai";
 import SlipGaji from "../pages/admin/SlipGaji";
 import DetailSlip from "../pages/admin/DetailSlip";
 import UploadSlip from "../pages/admin/UploadSlip";
+import PengajuanTtd from "../pages/admin/PengajuanTtd";
 import Notifikasi from "../pages/admin/Notifikasi";
 import Profil from "../pages/admin/Profil";
 import Pengaturan from "../pages/admin/Pengaturan";
@@ -50,6 +51,7 @@ function AppRoutes() {
         <Route path="/admin/slip-gaji" element={<ProtectedRoute roles={["admin"]}><SlipGaji /></ProtectedRoute>} />
         <Route path="/admin/detail-slip" element={<ProtectedRoute roles={["admin"]}><DetailSlip /></ProtectedRoute>} />
         <Route path="/admin/import-excel" element={<ProtectedRoute roles={["admin"]}><UploadSlip /></ProtectedRoute>} />
+        <Route path="/admin/pengajuan-ttd" element={<ProtectedRoute roles={["admin"]}><PengajuanTtd /></ProtectedRoute>} />
         <Route path="/admin/riwayat" element={<Navigate to="/admin/slip-gaji" replace />} />
         <Route path="/admin/notifikasi" element={<ProtectedRoute roles={["admin"]}><Notifikasi /></ProtectedRoute>} />
         <Route path="/admin/profil" element={<ProtectedRoute roles={["admin"]}><Profil /></ProtectedRoute>} />
